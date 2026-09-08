@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Platform } from '@/types';
 import { PlatformBadge } from '@/components/PlatformBadge';
