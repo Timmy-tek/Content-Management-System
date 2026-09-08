@@ -159,6 +159,9 @@ export async function POST(req: Request) {
             version.caption,
             imageUrl
         )
+    } else if (platform === 'tiktok') {
+        if (!imageUrl) throw new Error('TikTok requires an image_url')
+        platformPostId = await publishToTikTok(connection.access_token, version.caption, imageUrl)
     } else {
             throw new Error(`${platform} publishing not wired yet`)
         }
@@ -197,4 +200,35 @@ async function publishToFacebook(pageId: string, pageAccessToken: string, captio
         if (data.error) throw new Error(data.error.message)
         return data.id
     }
+}
+
+async function publishToTikTok(accessToken: string, caption: string, imageUrl: string) {
+    const proxiedImageUrl = `${process.env.APP_URL}/api/tiktok-image-proxy?src=${encodeURIComponent(imageUrl)}`
+
+    const res = await fetch('https://open.tiktokapis.com/v2/post/publish/content/init/', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            post_info: {
+                title: caption,
+                privacy_level: 'SELF_ONLY',
+                disable_comment: false,
+            },
+            source_info: {
+                source: 'PULL_FROM_URL',
+                photo_cover_index: 0,
+                photo_images: [proxiedImageUrl],
+            },
+            post_mode: 'DIRECT_POST',
+            media_type: 'PHOTO',
+        }),
+    })
+
+    const data = await res.json()
+    if (data.error && data.error.code !== 'ok') throw new Error(data.error.message || JSON.stringify(data.error))
+
+    return data.data.publish_id
 }
