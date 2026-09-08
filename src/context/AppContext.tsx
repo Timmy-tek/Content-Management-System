@@ -151,8 +151,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                         ...mockConn,
                         connected: dbConn.connected,
                         status: dbConn.connected ? 'connected' : 'disconnected',
-                        accountId: dbConn.account_id,
-                        accessToken: dbConn.access_token,
+                        accountId: dbConn.account_id ?? undefined,
+                        accessToken: dbConn.access_token ?? undefined,
                         tokenExpiresAt: dbConn.token_expires_at
                             ? new Date(dbConn.token_expires_at).toLocaleDateString()
                             : 'Not connected',
