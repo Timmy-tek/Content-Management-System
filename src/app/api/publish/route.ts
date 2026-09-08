@@ -11,10 +11,31 @@ async function publishToInstagram(accountId: string, accessToken: string, captio
     const containerData = await containerRes.json()
     if (containerData.error) throw new Error(containerData.error.message)
 
+    const containerId = containerData.id
+
+    // poll until Instagram finishes fetching/processing the image, up to ~30s
+    let status = 'IN_PROGRESS'
+    for (let attempt = 0; attempt < 10; attempt++) {
+        const statusRes = await fetch(
+            `https://graph.instagram.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
+        )
+        const statusData = await statusRes.json()
+        status = statusData.status_code
+
+        if (status === 'FINISHED') break
+        if (status === 'ERROR') throw new Error('Instagram failed to process the image')
+
+        await new Promise((resolve) => setTimeout(resolve, 3000))
+    }
+
+    if (status !== 'FINISHED') {
+        throw new Error('Instagram is still processing the image — try publishing again in a moment')
+    }
+
     const publishRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media_publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ creation_id: containerData.id, access_token: accessToken }),
+        body: JSON.stringify({ creation_id: containerId, access_token: accessToken }),
     })
     const publishData = await publishRes.json()
     if (publishData.error) throw new Error(publishData.error.message)
@@ -22,7 +43,50 @@ async function publishToInstagram(accountId: string, accessToken: string, captio
     return publishData.id
 }
 
-async function publishToLinkedIn(memberUrn: string, accessToken: string, commentary: string) {
+async function publishToLinkedIn(memberUrn: string, accessToken: string, commentary: string, imageUrl?: string) {
+    let imageUrn: string | null = null
+
+    if (imageUrl) {
+        const initRes = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Linkedin-Version': '202601',
+                'X-Restli-Protocol-Version': '2.0.0',
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ initializeUploadRequest: { owner: memberUrn } }),
+        })
+        const initData = await initRes.json()
+        if (!initRes.ok) throw new Error(`LinkedIn image init failed: ${JSON.stringify(initData)}`)
+
+        const uploadUrl = initData.value.uploadUrl
+        imageUrn = initData.value.image
+
+        // fetch the actual image bytes from our own Supabase Storage URL
+        const imageRes = await fetch(imageUrl)
+        const imageBuffer = await imageRes.arrayBuffer()
+
+        const putRes = await fetch(uploadUrl, {
+            method: 'PUT',
+            headers: { Authorization: `Bearer ${accessToken}` },
+            body: Buffer.from(imageBuffer),
+        })
+        if (!putRes.ok) throw new Error('LinkedIn image upload failed')
+    }
+
+    const body: any = {
+        author: memberUrn,
+        lifecycleState: 'PUBLISHED',
+        visibility: 'PUBLIC',
+        commentary,
+        distribution: { feedDistribution: 'MAIN_FEED' },
+    }
+
+    if (imageUrn) {
+        body.content = { media: { id: imageUrn } }
+    }
+
     const res = await fetch('https://api.linkedin.com/rest/posts', {
         method: 'POST',
         headers: {
@@ -31,13 +95,7 @@ async function publishToLinkedIn(memberUrn: string, accessToken: string, comment
             'X-Restli-Protocol-Version': '2.0.0',
             'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-            author: memberUrn,
-            lifecycleState: 'PUBLISHED',
-            visibility: 'PUBLIC',
-            commentary,
-            distribution: { feedDistribution: 'MAIN_FEED' },
-        }),
+        body: JSON.stringify(body),
     })
 
     if (!res.ok) {
@@ -83,6 +141,7 @@ export async function POST(req: Request) {
                 connection.account_id,
                 connection.access_token,
                 version.caption
+                imageUrl
             )
         } else {
             throw new Error(`${platform} publishing not wired yet`)
