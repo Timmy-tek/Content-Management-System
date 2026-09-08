@@ -18,6 +18,18 @@ import {
 
 import { supabase } from '@/lib/supabase';
 
+interface PlatformConnectionRow {
+    id: string;
+    platform: string;
+    account_name: string | null;
+    follower_count: number | null;
+    connected: boolean;
+    access_token: string | null;
+    token_expires_at: string | null;
+    created_at: string;
+    account_id: string | null;
+}
+
 const previewTypeFor = (platform: Platform): PlatformVersion['previewType'] => {
     if (platform === 'instagram') return 'carousel';
     if (platform === 'tiktok') return 'reels';
@@ -110,7 +122,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     React.useEffect(() => {
         async function loadConnections() {
-            const { data, error } = await supabase.from('platform_connections').select('*');
+            const { data, error } = await supabase
+                .from('platform_connections')
+                .select('*')
+                .returns<PlatformConnectionRow[]>();
             if (error) {
                 console.error('Failed to load connections:', error);
                 return;
@@ -118,7 +133,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
             setConnections((prev) =>
                 prev.map((mockConn) => {
-                    const dbConn = data.find((d: any) => d.platform === mockConn.platform);
+                    const dbConn = data.find((d) => d.platform === mockConn.platform);
 
                     if (!dbConn) {
                         // no real row yet — this platform is genuinely not connected
