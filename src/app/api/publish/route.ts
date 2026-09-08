@@ -152,7 +152,14 @@ export async function POST(req: Request) {
                 version.caption,
                 imageUrl
             )
-        } else {
+        } else if (platform === 'facebook') {
+        platformPostId = await publishToFacebook(
+            connection.account_id,
+            connection.access_token,
+            version.caption,
+            imageUrl
+        )
+    } else {
             throw new Error(`${platform} publishing not wired yet`)
         }
 
@@ -167,5 +174,27 @@ export async function POST(req: Request) {
         console.error('Publish error:', err)
         const message = err instanceof Error ? err.message : 'Unknown error'
         return NextResponse.json({ error: message }, { status: 500 })
+    }
+}
+
+async function publishToFacebook(pageId: string, pageAccessToken: string, caption: string, imageUrl?: string) {
+    if (imageUrl) {
+        const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: imageUrl, caption, access_token: pageAccessToken }),
+        })
+        const data = await res.json()
+        if (data.error) throw new Error(data.error.message)
+        return data.post_id || data.id
+    } else {
+        const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: caption, access_token: pageAccessToken }),
+        })
+        const data = await res.json()
+        if (data.error) throw new Error(data.error.message)
+        return data.id
     }
 }
