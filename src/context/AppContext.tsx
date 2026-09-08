@@ -116,24 +116,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            if (data.length > 0) {
-                setConnections((prev) =>
-                    prev.map((mockConn) => {
-                        const dbConn = data.find((d) => d.platform === mockConn.platform);
-                        if (!dbConn) return mockConn;
+            setConnections((prev) =>
+                prev.map((mockConn) => {
+                    const dbConn = data.find((d: any) => d.platform === mockConn.platform);
+
+                    if (!dbConn) {
+                        // no real row yet — this platform is genuinely not connected
                         return {
                             ...mockConn,
-                            connected: dbConn.connected,
-                            status: dbConn.connected ? 'connected' : 'disconnected',
-                            accountId: dbConn.account_id,
-                            accessToken: dbConn.access_token,
-                            tokenExpiresAt: dbConn.token_expires_at
-                                ? new Date(dbConn.token_expires_at).toLocaleDateString()
-                                : 'Not connected',
+                            connected: false,
+                            status: 'disconnected',
+                            accountId: undefined,
+                            accessToken: undefined,
+                            tokenExpiresAt: 'Not connected',
                         };
-                    })
-                );
-            }
+                    }
+
+                    return {
+                        ...mockConn,
+                        connected: dbConn.connected,
+                        status: dbConn.connected ? 'connected' : 'disconnected',
+                        accountId: dbConn.account_id,
+                        accessToken: dbConn.access_token,
+                        tokenExpiresAt: dbConn.token_expires_at
+                            ? new Date(dbConn.token_expires_at).toLocaleDateString()
+                            : 'Not connected',
+                    };
+                })
+            );
         }
 
         loadConnections();
