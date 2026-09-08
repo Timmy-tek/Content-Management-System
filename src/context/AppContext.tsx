@@ -305,55 +305,55 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
     };
 
-    const publishPostNow: AppContextType['publishPostNow'] = (postId, platformsOverride) => {
-        setPosts((prev) =>
-            prev.map((post) => {
-                if (post.id !== postId) return post;
-                const targetPlatforms = platformsOverride ?? (Object.keys(post.versions) as Platform[]);
-                const updatedVersions = { ...post.versions };
+    const publishPostNow: AppContextType['publishPostNow'] = async (postId, platformsOverride) => {
+        const post = posts.find((p) => p.id === postId);
+        if (!post) return [];
 
-                targetPlatforms.forEach((plat) => {
-                    const ver = updatedVersions[plat];
-                    if (ver) {
-                        const platformPostId = `${plat}_live_${Date.now().toString().slice(-5)}`;
-                        const publishedAt = new Date().toISOString();
+        const targetPlatforms = platformsOverride ?? (Object.keys(post.versions) as Platform[]);
+        const results: PublishResult[] = [];
 
-                        updatedVersions[plat] = {
-                            ...ver,
-                            status: 'published',
-                            publishedAt,
-                            platformPostId,
-                            metrics: ver.metrics || {
-                                reach: Math.floor(Math.random() * 15000) + 3000,
-                                likes: Math.floor(Math.random() * 800) + 150,
-                                comments: Math.floor(Math.random() * 90) + 10,
-                                saves: Math.floor(Math.random() * 200) + 20,
-                                shares: Math.floor(Math.random() * 80) + 5,
-                                clicks: Math.floor(Math.random() * 300) + 40,
-                                engagementRate: Number((Math.random() * 4 + 3).toFixed(1)),
-                                sparkline: [10, 25, 45, 60, 78, 89, 100],
-                            },
-                        };
+        for (const plat of targetPlatforms) {
+            const ver = post.versions[plat];
+            if (!ver) continue;
 
-                        supabase
-                            .from('platform_versions')
-                            .update({ status: 'published', published_at: publishedAt, platform_post_id: platformPostId })
-                            .eq('id', ver.id)
-                            .then(({ error }) => { if (error) console.error('Failed to persist publish:', error); });
-                    }
+            try {
+                const res = await fetch('/api/publish', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ platformVersionId: ver.id, platform: plat }),
                 });
 
-                const allVersions = Object.values(updatedVersions);
-                const overallStatus = allVersions.every((v) => v?.status === 'published') ? 'published' : post.status;
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'Publish failed');
 
-                supabase.from('posts').update({ status: overallStatus }).eq('id', postId)
-                    .then(({ error }) => { if (error) console.error('Failed to persist post status:', error); });
+                results.push({ platform: plat, success: true });
 
-                return { ...post, status: overallStatus, versions: updatedVersions };
-            })
-        );
+                setPosts((prev) =>
+                    prev.map((p) => {
+                        if (p.id !== postId) return p;
+                        const updatedVersions = { ...p.versions };
+                        const v = updatedVersions[plat];
+                        if (v) {
+                            updatedVersions[plat] = {
+                                ...v,
+                                status: 'published',
+                                publishedAt: new Date().toISOString(),
+                                platformPostId: data.platformPostId,
+                            };
+                        }
+                        const allVersions = Object.values(updatedVersions);
+                        const overallStatus = allVersions.every((v2) => v2?.status === 'published') ? 'published' : p.status;
+                        return { ...p, status: overallStatus, versions: updatedVersions };
+                    })
+                );
+            } catch (err: any) {
+                results.push({ platform: plat, success: false, error: err.message });
+            }
+        }
+
+        return results;
     };
-
+    
     const schedulePost: AppContextType['schedulePost'] = (postId, platformSchedules, platformsOverride) => {
         setPosts((prev) =>
             prev.map((post) => {
