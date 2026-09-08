@@ -18,6 +18,12 @@ import {
 
 import { supabase } from '@/lib/supabase';
 
+export interface PublishResult {
+    platform: Platform;
+    success: boolean;
+    error?: string;
+}
+
 interface PlatformConnectionRow {
     id: string;
     platform: string;
@@ -50,7 +56,7 @@ interface AppContextType {
   approveAllPlatformVersions: (postId: string) => void;
   // publishPostNow: (postId: string) => void;
   // schedulePost: (postId: string, platformSchedules: Record<Platform, string>) => void;
-    publishPostNow: (postId: string, platforms?: Platform[]) => void;
+    publishPostNow: (postId: string, platforms?: Platform[]) => Promise<PublishResult[]>;
     schedulePost: (postId: string, platformSchedules: Record<Platform, string>, platforms?: Platform[]) => void;
   updateConnection: (platform: Platform, updates: Partial<PlatformConnection>) => void;
   updateBrandSettings: (settings: Partial<BrandSettings>) => void;

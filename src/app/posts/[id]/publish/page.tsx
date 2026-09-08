@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   AlertTriangle
 } from 'lucide-react';
+import { PublishResult } from '@/context/AppContext';
 
 export default function PublishPage() {
   const params = useParams();
@@ -38,6 +39,7 @@ export default function PublishPage() {
 
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedDone, setPublishedDone] = useState(false);
+  const [publishResults, setPublishResults] = useState<PublishResult[]>([]);
 
   useEffect(() => {
     setPublishModes({ instagram: 'now', linkedin: 'now', tiktok: 'now', facebook: 'now' });
@@ -68,23 +70,24 @@ export default function PublishPage() {
     setScheduledTimes((prev) => ({ ...prev, [p]: timeStr }));
   };
 
-  const handleExecutePublishing = () => {
+  const handleExecutePublishing = async () => {
     setIsPublishing(true);
 
     const nowPlatforms = post.platforms.filter((p) => publishModes[p] === 'now');
     const scheduledPlatforms = post.platforms.filter((p) => publishModes[p] === 'schedule');
 
-    setTimeout(() => {
-      if (nowPlatforms.length > 0) {
-        publishPostNow(postId, nowPlatforms);
-      }
-      if (scheduledPlatforms.length > 0) {
-        schedulePost(postId, scheduledTimes, scheduledPlatforms);
-      }
+    let results: PublishResult[] = [];
 
-      setIsPublishing(false);
-      setPublishedDone(true);
-    }, 1200);
+    if (nowPlatforms.length > 0) {
+      results = await publishPostNow(postId, nowPlatforms);
+    }
+    if (scheduledPlatforms.length > 0) {
+      schedulePost(postId, scheduledTimes, scheduledPlatforms);
+    }
+
+    setPublishResults(results);
+    setIsPublishing(false);
+    setPublishedDone(true);
   };
 
   return (
@@ -113,35 +116,62 @@ export default function PublishPage() {
 
       {publishedDone ? (
         /* Success Screen */
-        <div className="bg-white rounded-3xl p-8 sm:p-12 text-center shadow-xl border border-black/5 space-y-6">
-          <div className="w-16 h-16 rounded-full bg-[#A9F5A0] text-[#0B4F07] flex items-center justify-center mx-auto shadow-inner">
-            <CheckCircle2 className="w-8 h-8" />
-          </div>
+          <div className="bg-white rounded-3xl p-8 sm:p-12 text-center shadow-xl border border-black/5 space-y-6">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-inner ${
+                publishResults.every((r) => r.success) || publishResults.length === 0
+                    ? 'bg-[#A9F5A0] text-[#0B4F07]'
+                    : publishResults.some((r) => r.success)
+                        ? 'bg-[#F5E6A3] text-[#574300]'
+                        : 'bg-[#F5A9A9] text-[#5C0A0A]'
+            }`}>
+              <CheckCircle2 className="w-8 h-8" />
+            </div>
 
-          <div className="space-y-2 max-w-md mx-auto">
-            <h2 className="text-2xl font-bold font-space text-[#111111]">
-              Campaign Multi-Publish Triggered!
-            </h2>
-            <p className="text-xs text-[#555555] font-inter leading-relaxed">
-              Approved versions have been routed to live APIs. Performance analytics will populate in real time.
-            </p>
-          </div>
+            <div className="space-y-2 max-w-md mx-auto">
+              <h2 className="text-2xl font-bold font-space text-[#111111]">
+                {publishResults.length === 0
+                    ? 'Scheduled'
+                    : publishResults.every((r) => r.success)
+                        ? 'Published successfully'
+                        : publishResults.some((r) => r.success)
+                            ? 'Partially published'
+                            : 'Publishing failed'}
+              </h2>
+            </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-            <button
-              onClick={() => router.push(`/posts/${postId}`)}
-              className="bg-[#111111] text-white px-6 py-3 rounded-full text-xs font-bold font-space hover:bg-[#222222] shadow-md transition-all cursor-pointer"
-            >
-              View Post Detail & Branching Graph
-            </button>
-            <button
-              onClick={() => router.push('/posts')}
-              className="bg-[#F2F1EF] text-[#111111] px-6 py-3 rounded-full text-xs font-bold font-space hover:bg-[#E2E1DF] transition-all cursor-pointer"
-            >
-              Back to Library
-            </button>
+            {publishResults.length > 0 && (
+                <div className="max-w-md mx-auto space-y-2 text-left">
+                  {publishResults.map((r) => (
+                      <div
+                          key={r.platform}
+                          className={`flex items-center justify-between p-3 rounded-2xl text-xs font-inter ${
+                              r.success ? 'bg-[#A9F5A0]/20' : 'bg-[#F5A9A9]/20'
+                          }`}
+                      >
+                        <span className="font-bold font-space capitalize">{r.platform}</span>
+                        <span className={r.success ? 'text-[#0B4F07]' : 'text-[#5C0A0A]'}>
+            {r.success ? 'Published' : r.error}
+          </span>
+                      </div>
+                  ))}
+                </div>
+            )}
+
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+              <button
+                  onClick={() => router.push(`/posts/${postId}`)}
+                  className="bg-[#111111] text-white px-6 py-3 rounded-full text-xs font-bold font-space hover:bg-[#222222] shadow-md transition-all cursor-pointer"
+              >
+                View Post Detail & Branching Graph
+              </button>
+              <button
+                  onClick={() => router.push('/posts')}
+                  className="bg-[#F2F1EF] text-[#111111] px-6 py-3 rounded-full text-xs font-bold font-space hover:bg-[#E2E1DF] transition-all cursor-pointer"
+              >
+                Back to Library
+              </button>
+            </div>
           </div>
-        </div>
       ) : (
         /* Per-platform publish row list */
         <div className="space-y-4">
