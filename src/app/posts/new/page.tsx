@@ -69,12 +69,12 @@ export default function NewPostPage() {
       });
 
       router.push(`/posts/${newPostId}/review?animate=true`);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong generating this post. Try again.');
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Something went wrong generating this post. Try again.';
+      setError(message);
       setIsGenerating(false);
     }
-  };
-  
+
   const contentTypes: { id: Post['contentType']; label: string; icon: React.ElementType }[] = [
     { id: 'article', label: 'Article / Blog', icon: FileText },
     { id: 'video', label: 'Video Transcript', icon: Video },
