@@ -89,14 +89,18 @@ export default function NewPostPage() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   async function uploadImage(file: File): Promise<string> {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+    const formData = new FormData()
+    formData.append('file', file)
 
-    const { error } = await supabase.storage.from('post-images').upload(fileName, file);
-    if (error) throw new Error(`Image upload failed: ${error.message}`);
+    const res = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData,
+    })
 
-    const { data } = supabase.storage.from('post-images').getPublicUrl(fileName);
-    return data.publicUrl;
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Image upload failed')
+
+    return data.imageUrl
   }
 
   return (
