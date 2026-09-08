@@ -140,7 +140,7 @@ export async function POST(req: Request) {
             platformPostId = await publishToLinkedIn(
                 connection.account_id,
                 connection.access_token,
-                version.caption
+                version.caption,
                 imageUrl
             )
         } else {
