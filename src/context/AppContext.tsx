@@ -346,14 +346,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                         return { ...p, status: overallStatus, versions: updatedVersions };
                     })
                 );
-            } catch (err: any) {
-                results.push({ platform: plat, success: false, error: err.message });
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Publish failed';
+                results.push({ platform: plat, success: false, error: message });
             }
         }
 
         return results;
     };
-    
+
     const schedulePost: AppContextType['schedulePost'] = (postId, platformSchedules, platformsOverride) => {
         setPosts((prev) =>
             prev.map((post) => {
