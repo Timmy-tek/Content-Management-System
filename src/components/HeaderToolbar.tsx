@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import {
   Search,
@@ -72,9 +73,11 @@ export function HeaderToolbar() {
 
           {/* User Account Capsule */}
           <div className="flex items-center gap-2 bg-black/5 hover:bg-black/10 pl-1.5 pr-2.5 py-1 rounded-full cursor-pointer transition-colors border border-black/10">
-            <img
+            <Image
               src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80"
               alt="Sarah Chen"
+              width={24}
+              height={24}
               className="w-6 h-6 rounded-full object-cover border border-black/20"
             />
             <span className="text-xs font-medium text-[#111111]/90 hidden sm:inline-block font-space">

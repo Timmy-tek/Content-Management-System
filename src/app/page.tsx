@@ -1,7 +1,7 @@
 'use client';
 
 // import React from 'react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { StatusCapsule } from '@/components/StatusCapsule';

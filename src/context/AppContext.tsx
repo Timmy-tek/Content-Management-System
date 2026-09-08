@@ -4,13 +4,13 @@ import React, { createContext, useContext, useState } from 'react';
 import {
   Post,
   PlatformVersion,
+  PlatformVersionStatus,
   PlatformConnection,
   BrandSettings,
   ApiSettings,
   Platform
 } from '@/types';
 import {
-  initialPosts,
   initialConnections,
   initialBrandSettings,
   initialApiSettings
@@ -66,18 +66,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 return;
             }
 
-            const mapped: Post[] = data.map((row: any) => {
+            const mapped: Post[] = data.map((row) => {
                 const versions: Post['versions'] = {};
-                (row.platform_versions || []).forEach((v: any) => {
+                (row.platform_versions || []).forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus; published_at: string; platform_post_id: string }) => {
                     versions[v.platform as Platform] = {
                         id: v.id,
                         postId: v.post_id,
-                        platform: v.platform,
+                        platform: v.platform as Platform,
                         caption: v.caption,
                         hashtags: v.hashtags || [],
                         status: v.status,
                         approved: v.status !== 'review',
-                        previewType: previewTypeFor(v.platform),
+                        previewType: previewTypeFor(v.platform as Platform),
                         publishedAt: v.published_at,
                         platformPostId: v.platform_post_id,
                     };
@@ -119,7 +119,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (data.length > 0) {
                 setConnections((prev) =>
                     prev.map((mockConn) => {
-                        const dbConn = data.find((d: any) => d.platform === mockConn.platform);
+                        const dbConn = data.find((d) => d.platform === mockConn.platform);
                         if (!dbConn) return mockConn;
                         return {
                             ...mockConn,
@@ -170,16 +170,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
 
     const versions: Post['versions'] = {};
-    dbVersions.forEach((v: any) => {
+    dbVersions.forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus }) => {
       versions[v.platform as Platform] = {
         id: v.id,
         postId: v.post_id,
-        platform: v.platform,
+        platform: v.platform as Platform,
         caption: v.caption,
         hashtags: v.hashtags || [],
         status: v.status,
         approved: false,
-        previewType: previewTypeFor(v.platform),
+        previewType: previewTypeFor(v.platform as Platform),
       };
     });
 

@@ -62,8 +62,9 @@ export default function NewPostPage() {
       });
 
       router.push(`/posts/${newPostId}/review?animate=true`);
-    } catch (err: any) {
-      setError(err.message || 'Something went wrong generating this post. Try again.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Something went wrong generating this post. Try again.';
+      setError(message);
       setIsGenerating(false);
     }
   };

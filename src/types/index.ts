@@ -5,6 +5,7 @@ export type PostStatus =
   | 'analyzing'
   | 'adapting'
   | 'review'
+  | 'approved'
   | 'scheduled'
   | 'published'
   | 'failed';

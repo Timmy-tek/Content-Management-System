@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
@@ -55,7 +56,7 @@ export default function PostDetailPage() {
             No adapted content yet
           </h2>
           <p className="text-xs text-[#666666] font-inter">
-            This post hasn't been through AI adaptation. Delete it if it was a test entry, or start a new adaptation with this content.
+            This post hasn&apos;t been through AI adaptation. Delete it if it was a test entry, or start a new adaptation with this content.
           </p>
           <div className="flex items-center justify-center gap-2 pt-2">
             <button
@@ -255,9 +256,11 @@ export default function PostDetailPage() {
           {/* Owner Card */}
           <div className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <img
+              <Image
                 src={post.owner.avatar}
                 alt={post.owner.name}
+                width={40}
+                height={40}
                 className="w-10 h-10 rounded-full object-cover border border-black/10"
               />
               <div>

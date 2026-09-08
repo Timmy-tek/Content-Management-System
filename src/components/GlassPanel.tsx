@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { PerformanceInsight } from '@/types';
 import { PlatformBadge } from './PlatformBadge';
 import { Sparkles, Lock } from 'lucide-react';
@@ -163,11 +164,13 @@ export function GlassPanel({
             <span className="text-white/70 font-inter">Referenced posts:</span>
             <div className="flex items-center -space-x-2 overflow-hidden">
               {insight.postReferences.map((ref, i) => (
-                <img
+                <Image
                   key={i}
                   src={ref.avatar}
                   alt={ref.title}
                   title={ref.title}
+                  width={24}
+                  height={24}
                   className="inline-block h-6 w-6 rounded-full ring-2 ring-[#2E7BD1] object-cover"
                 />
               ))}
