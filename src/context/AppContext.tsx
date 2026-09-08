@@ -50,7 +50,7 @@ interface AppContextType {
   connections: PlatformConnection[];
   brandSettings: BrandSettings;
   apiSettings: ApiSettings;
-  addPost: (postData: { title: string; contentType: Post['contentType']; sourceContent: string; goal?: string; audience?: string; selectedPlatforms: Platform[] }) => Promise<string>;
+    addPost: (postData: { title: string; contentType: Post['contentType']; sourceContent: string; goal?: string; audience?: string; selectedPlatforms: Platform[]; imageUrl?: string }) => Promise<string>;
   updatePlatformVersion: (postId: string, platform: Platform, updates: Partial<PlatformVersion>) => void;
   approvePlatformVersion: (postId: string, platform: Platform) => void;
   approveAllPlatformVersions: (postId: string) => void;
@@ -106,6 +106,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     title: row.title,
                     contentType: row.content_type,
                     sourceContent: row.source_text,
+                    imageUrl: row.image_url,
                     status: row.status,
                     createdAt: row.created_at,
                     goal: row.primary_goal,
@@ -170,26 +171,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         loadConnections();
     }, []);
 
-  const addPost: AppContextType['addPost'] = async ({
-                                                      title,
-                                                      contentType,
-                                                      sourceContent,
-                                                      goal,
-                                                      audience,
-                                                      selectedPlatforms,
-                                                    }) => {
-    const res = await fetch('/api/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title,
-        contentType,
-        sourceText: sourceContent,
-        primaryGoal: goal,
-        targetAudience: audience,
-        platforms: selectedPlatforms,
-      }),
-    });
+    const addPost: AppContextType['addPost'] = async ({
+                                                          title,
+                                                          contentType,
+                                                          sourceContent,
+                                                          goal,
+                                                          audience,
+                                                          selectedPlatforms,
+                                                          imageUrl,
+                                                      }) => {
+        const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title,
+                contentType,
+                sourceText: sourceContent,
+                primaryGoal: goal,
+                targetAudience: audience,
+                platforms: selectedPlatforms,
+                imageUrl,
+            }),
+        });
+
 
     if (!res.ok) {
       const errBody = await res.json().catch(() => ({}));
@@ -219,6 +223,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       title: dbPost.title,
       contentType: dbPost.content_type,
       sourceContent: dbPost.source_text,
+        imageUrl: dbPost.image_url,
       status: dbPost.status,
       createdAt: dbPost.created_at,
       goal: dbPost.primary_goal,
@@ -320,7 +325,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 const res = await fetch('/api/publish', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ platformVersionId: ver.id, platform: plat }),
+                    body: JSON.stringify({ platformVersionId: ver.id, platform: plat, imageUrl: post.imageUrl }),
                 });
 
                 const data = await res.json();

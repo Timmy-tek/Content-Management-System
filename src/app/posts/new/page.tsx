@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { Platform, Post } from '@/types';
@@ -52,6 +53,11 @@ export default function NewPostPage() {
     setError(null);
 
     try {
+      let imageUrl: string | undefined;
+      if (imageFile) {
+        imageUrl = await uploadImage(imageFile);
+      }
+
       const newPostId = await addPost({
         title,
         contentType,
@@ -59,16 +65,16 @@ export default function NewPostPage() {
         goal,
         audience,
         selectedPlatforms,
+        imageUrl,
       });
 
       router.push(`/posts/${newPostId}/review?animate=true`);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Something went wrong generating this post. Try again.';
-      setError(message);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong generating this post. Try again.');
       setIsGenerating(false);
     }
   };
-
+  
   const contentTypes: { id: Post['contentType']; label: string; icon: React.ElementType }[] = [
     { id: 'article', label: 'Article / Blog', icon: FileText },
     { id: 'video', label: 'Video Transcript', icon: Video },
@@ -77,6 +83,20 @@ export default function NewPostPage() {
   ];
 
   const allPlatforms: Platform[] = ['instagram', 'linkedin', 'tiktok', 'facebook'];
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  async function uploadImage(file: File): Promise<string> {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+
+    const { error } = await supabase.storage.from('post-images').upload(fileName, file);
+    if (error) throw new Error(`Image upload failed: ${error.message}`);
+
+    const { data } = supabase.storage.from('post-images').getPublicUrl(fileName);
+    return data.publicUrl;
+  }
 
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-16">
@@ -155,6 +175,27 @@ export default function NewPostPage() {
               <span>Or drag .txt / .md file</span>
             </div>
           </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
+            Cover Image (required for Instagram)
+          </label>
+          <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setImageFile(file);
+                  setImagePreview(URL.createObjectURL(file));
+                }
+              }}
+              className="w-full text-xs font-inter text-[#555555] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:font-space file:bg-[#111111] file:text-white hover:file:bg-[#222222] file:cursor-pointer"
+          />
+          {imagePreview && (
+              <img src={imagePreview} alt="Preview" className="mt-3 rounded-2xl max-h-48 object-cover" />
+          )}
         </div>
 
         {/* Campaign Goal & Target Audience Fields */}

@@ -35,7 +35,7 @@ ${JSON.stringify(analysis)}`
 export async function POST(req: Request) {
     try {
         const body = await req.json()
-        const { title, contentType, sourceText, primaryGoal, targetAudience, platforms } = body
+        const { title, contentType, sourceText, primaryGoal, targetAudience, platforms, imageUrl  } = body
 
         // 1. save the post as pending_review
         const { data: post, error: postError } = await supabase
@@ -47,6 +47,7 @@ export async function POST(req: Request) {
                 primary_goal: primaryGoal,
                 target_audience: targetAudience,
                 status: 'review',
+                image_url: imageUrl,
             })
             .select()
             .single()

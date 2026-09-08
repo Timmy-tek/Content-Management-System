@@ -61,6 +61,7 @@ export interface Post {
   versions: Partial<Record<Platform, PlatformVersion>>;
   goal?: string;
   audience?: string;
+  imageUrl?: string;
 }
 
 export interface PlatformConnection {
