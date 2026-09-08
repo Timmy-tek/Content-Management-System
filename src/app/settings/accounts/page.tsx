@@ -41,6 +41,23 @@ export default function ConnectedAccountsPage() {
     });
   };
 
+  const [showTokenForm, setShowTokenForm] = useState<Platform | null>(null);
+  const [tokenInput, setTokenInput] = useState('');
+  const [accountIdInput, setAccountIdInput] = useState('');
+
+  const handleSaveToken = (platform: Platform) => {
+    updateConnection(platform, {
+      connected: true,
+      status: 'connected',
+      accessToken: tokenInput,
+      accountId: accountIdInput,
+      tokenExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+    });
+    setShowTokenForm(null);
+    setTokenInput('');
+    setAccountIdInput('');
+  };
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-16">
       {/* Header */}
@@ -144,15 +161,46 @@ export default function ConnectedAccountsPage() {
                       <span>Disconnect</span>
                     </button>
                   </>
-                ) : (
-                  <button
-                    onClick={() => handleToggleConnection(conn.platform, false)}
+                ) : conn.platform === 'linkedin' ? (
+
+                        href="/api/auth/linkedin/start"
                     className="w-full inline-flex items-center justify-center gap-2 bg-[#111111] text-white hover:bg-[#222222] font-bold text-xs px-6 py-2.5 rounded-full font-space transition-all cursor-pointer shadow-md"
-                  >
-                    <Link2 className="w-4 h-4 text-[#E5F23A]" />
-                    <span>Connect Channel Account</span>
-                  </button>
-                )}
+                        >
+                        <Link2 className="w-4 h-4 text-[#E5F23A]" />
+                  <span>Connect with LinkedIn</span>
+                  </a>
+                  ) : showTokenForm === conn.platform ? (
+                  <div className="w-full space-y-2">
+                  <input
+                  type="text"
+                  placeholder="Access token"
+                  value={tokenInput}
+                onChange={(e) => setTokenInput(e.target.value)}
+                className="w-full bg-[#F2F1EF] border border-black/10 rounded-xl px-3 py-2 text-xs font-inter"
+              />
+              <input
+                  type="text"
+                  placeholder="Instagram Business Account ID"
+                  value={accountIdInput}
+                  onChange={(e) => setAccountIdInput(e.target.value)}
+                  className="w-full bg-[#F2F1EF] border border-black/10 rounded-xl px-3 py-2 text-xs font-inter"
+              />
+              <button
+                  onClick={() => handleSaveToken(conn.platform)}
+                  className="w-full bg-[#111111] text-white font-bold text-xs px-4 py-2 rounded-full font-space"
+              >
+                Save Connection
+              </button>
+            </div>
+        ) : (
+          <button
+              onClick={() => setShowTokenForm(conn.platform)}
+              className="w-full inline-flex items-center justify-center gap-2 bg-[#111111] text-white hover:bg-[#222222] font-bold text-xs px-6 py-2.5 rounded-full font-space transition-all cursor-pointer shadow-md"
+          >
+            <Link2 className="w-4 h-4 text-[#E5F23A]" />
+            <span>Connect Channel Account</span>
+          </button>
+        )}
               </div>
             </div>
           );

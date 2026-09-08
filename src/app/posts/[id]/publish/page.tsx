@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { Platform } from '@/types';
@@ -39,6 +39,11 @@ export default function PublishPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedDone, setPublishedDone] = useState(false);
 
+  useEffect(() => {
+    setPublishModes({ instagram: 'now', linkedin: 'now', tiktok: 'now', facebook: 'now' });
+    setPublishedDone(false);
+  }, [postId]);
+
   if (!post) {
     return (
       <div className="max-w-md mx-auto my-12 bg-white rounded-3xl p-8 text-center shadow-lg border border-black/5 space-y-4">
@@ -66,14 +71,15 @@ export default function PublishPage() {
   const handleExecutePublishing = () => {
     setIsPublishing(true);
 
-    setTimeout(() => {
-      // Check if any platform is set to 'schedule' vs 'now'
-      const hasScheduled = Object.values(publishModes).some((m) => m === 'schedule');
+    const nowPlatforms = post.platforms.filter((p) => publishModes[p] === 'now');
+    const scheduledPlatforms = post.platforms.filter((p) => publishModes[p] === 'schedule');
 
-      if (hasScheduled) {
-        schedulePost(postId, scheduledTimes);
-      } else {
-        publishPostNow(postId);
+    setTimeout(() => {
+      if (nowPlatforms.length > 0) {
+        publishPostNow(postId, nowPlatforms);
+      }
+      if (scheduledPlatforms.length > 0) {
+        schedulePost(postId, scheduledTimes, scheduledPlatforms);
       }
 
       setIsPublishing(false);

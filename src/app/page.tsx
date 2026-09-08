@@ -1,10 +1,12 @@
 'use client';
 
-import React from 'react';
+// import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { StatusCapsule } from '@/components/StatusCapsule';
 import { PlatformBadge } from '@/components/PlatformBadge';
+import { supabase } from '@/lib/supabase';
 import {
   Plus,
   TrendingUp,
@@ -19,7 +21,18 @@ import {
 export default function DashboardPage() {
   const { posts, connections } = useApp();
 
-  // Calculate Hero KPIs
+  // 3. Use useEffect to run the async logic and log the data
+  useEffect(() => {
+    async function checkConnection() {
+      const { data, error } = await supabase.from('posts').select('*');
+      console.log('Supabase Data:', data);
+      console.log('Supabase Error:', error);
+    }
+
+    checkConnection();
+  }, []); // The empty array [] means this runs only once when the page loads
+
+    // Calculate Hero KPIs
   const totalFollowers = connections.reduce((acc, c) => acc + c.followers, 0);
 
   // Aggregate reach from published post versions

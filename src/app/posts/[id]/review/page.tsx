@@ -289,6 +289,15 @@ export default function ReviewPage() {
         {/* Primary Action Button Bar: "Approve All & Continue" */}
         {/* Exactly one high-contrast solid black (#111111) pill button per screen */}
         <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 relative z-10">
+          {!allApproved && (
+              <button
+                  type="button"
+                  onClick={() => approveAllPlatformVersions(postId)}
+                  className="text-xs font-bold font-space text-[#E5F23A] hover:text-white transition-colors cursor-pointer underline underline-offset-2"
+              >
+                Approve all drafts at once
+              </button>
+          )}
           <div className="text-xs text-white/70 font-inter">
             {allApproved ? (
               <span className="text-[#A9F5A0] font-bold font-space">

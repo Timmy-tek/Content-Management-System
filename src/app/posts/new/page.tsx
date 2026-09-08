@@ -32,6 +32,7 @@ export default function NewPostPage() {
     'facebook',
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const togglePlatform = (p: Platform) => {
     if (selectedPlatforms.includes(p)) {
@@ -43,14 +44,15 @@ export default function NewPostPage() {
     }
   };
 
-  const handleGenerate = (e: React.FormEvent) => {
+  const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !sourceContent.trim()) return;
 
     setIsGenerating(true);
+    setError(null);
 
-    setTimeout(() => {
-      const newPostId = addPost({
+    try {
+      const newPostId = await addPost({
         title,
         contentType,
         sourceContent,
@@ -60,7 +62,10 @@ export default function NewPostPage() {
       });
 
       router.push(`/posts/${newPostId}/review?animate=true`);
-    }, 1200);
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong generating this post. Try again.');
+      setIsGenerating(false);
+    }
   };
 
   const contentTypes: { id: Post['contentType']; label: string; icon: React.ElementType }[] = [
@@ -209,7 +214,7 @@ export default function NewPostPage() {
         {/* Form Action: Single Black Pill CTA */}
         <div className="pt-4 border-t border-black/5 flex items-center justify-between">
           <span className="text-xs text-[#666666] font-inter hidden sm:inline-block">
-            Generates 4 distinct platform formats in ~3 seconds
+            Takes about 15-20 seconds — analyzing, then adapting per platform
           </span>
 
           <button
@@ -231,6 +236,11 @@ export default function NewPostPage() {
             )}
           </button>
         </div>
+        {error && (
+            <div className="bg-[#F5A9A9]/20 border border-[#F5A9A9] rounded-2xl px-4 py-3 text-sm text-[#8B2C2C] font-inter">
+              {error}
+            </div>
+        )}
       </form>
     </div>
   );

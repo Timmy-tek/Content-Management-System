@@ -45,6 +45,35 @@ export default function PostDetailPage() {
       </div>
     );
   }
+  const hasVersions = Object.keys(post.versions).length > 0;
+
+  if (!hasVersions) {
+    return (
+        <div className="max-w-md mx-auto my-12 bg-white rounded-3xl p-8 text-center shadow-lg border border-black/5 space-y-4">
+          <FileText className="w-10 h-10 text-[#777777] mx-auto" />
+          <h2 className="text-lg font-bold font-space text-[#111111]">
+            No adapted content yet
+          </h2>
+          <p className="text-xs text-[#666666] font-inter">
+            This post hasn't been through AI adaptation. Delete it if it was a test entry, or start a new adaptation with this content.
+          </p>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+                onClick={() => router.push('/posts')}
+                className="bg-[#F2F1EF] text-[#111111] px-5 py-2 rounded-full text-xs font-bold font-space"
+            >
+              Back to Library
+            </button>
+            <button
+                onClick={() => router.push('/posts/new')}
+                className="bg-[#111111] text-white px-5 py-2 rounded-full text-xs font-bold font-space"
+            >
+              Start New Adaptation
+            </button>
+          </div>
+        </div>
+    );
+  }
 
   const activeVersion = post.versions[selectedPlatform] || Object.values(post.versions)[0];
   const activePlatKey = (activeVersion?.platform || 'linkedin') as Platform;
