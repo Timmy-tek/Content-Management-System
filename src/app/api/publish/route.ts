@@ -202,7 +202,30 @@ async function publishToFacebook(pageId: string, pageAccessToken: string, captio
     }
 }
 
+async function getTikTokCreatorInfo(accessToken: string) {
+    const res = await fetch('https://open.tiktokapis.com/v2/post/publish/creator_info/query/', {
+        method: 'POST',
+        headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json; charset=UTF-8',
+        },
+    })
+    const data = await res.json()
+    if (data.error && data.error.code !== 'ok') throw new Error(`Creator info query failed: ${data.error.message}`)
+    return data.data
+}
+
 async function publishToTikTok(accessToken: string, caption: string, imageUrl: string) {
+    const creatorInfo = await getTikTokCreatorInfo(accessToken)
+    const allowedPrivacyLevels: string[] = creatorInfo.privacy_level_options || []
+
+    // prefer SELF_ONLY if it's actually offered, otherwise just take whatever this account allows
+    const privacyLevel = allowedPrivacyLevels.includes('SELF_ONLY')
+        ? 'SELF_ONLY'
+        : allowedPrivacyLevels[0]
+
+    if (!privacyLevel) throw new Error('TikTok did not return any valid privacy level for this account')
+
     const proxiedImageUrl = `${process.env.APP_URL}/api/tiktok-image-proxy?src=${encodeURIComponent(imageUrl)}`
 
     const res = await fetch('https://open.tiktokapis.com/v2/post/publish/content/init/', {
@@ -213,8 +236,9 @@ async function publishToTikTok(accessToken: string, caption: string, imageUrl: s
         },
         body: JSON.stringify({
             post_info: {
-                title: caption,
-                privacy_level: 'SELF_ONLY',
+                title: caption.slice(0, 90),
+                description: caption,
+                privacy_level: privacyLevel,
                 disable_comment: false,
             },
             source_info: {
