@@ -2,6 +2,15 @@
 import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
+interface LinkedInPostBody {
+    author: string
+    lifecycleState: string
+    visibility: string
+    commentary: string
+    distribution: { feedDistribution: string }
+    content?: { media: { id: string } }
+}
+
 async function publishToInstagram(accountId: string, accessToken: string, caption: string, imageUrl: string) {
     const containerRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media`, {
         method: 'POST',
@@ -75,7 +84,7 @@ async function publishToLinkedIn(memberUrn: string, accessToken: string, comment
         if (!putRes.ok) throw new Error('LinkedIn image upload failed')
     }
 
-    const body: any = {
+    const body: LinkedInPostBody = {
         author: memberUrn,
         lifecycleState: 'PUBLISHED',
         visibility: 'PUBLIC',
