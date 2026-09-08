@@ -74,6 +74,7 @@ export default function NewPostPage() {
       setError(message);
       setIsGenerating(false);
     }
+  };
 
   const contentTypes: { id: Post['contentType']; label: string; icon: React.ElementType }[] = [
     { id: 'article', label: 'Article / Blog', icon: FileText },
