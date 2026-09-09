@@ -12,6 +12,7 @@ import {
   ArrowUpRight,
   ChevronDown
 } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 export default function AnalyticsPage() {
   const { posts } = useApp();
@@ -19,6 +20,24 @@ export default function AnalyticsPage() {
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'all'>('all');
   const [sortField, setSortField] = useState<'reach' | 'engagement' | 'likes'>('reach');
   const [isGatedToggle, setIsGatedToggle] = useState(false);
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch('/api/sync-analytics', { method: 'POST' });
+      const data = await res.json();
+      const succeeded = data.results?.filter((r: any) => r.success).length || 0;
+      const failed = data.results?.filter((r: any) => !r.success).length || 0;
+      setSyncMessage(`Synced ${succeeded} post${succeeded === 1 ? '' : 's'}${failed > 0 ? `, ${failed} failed` : ''}. Refresh to see updates.`);
+    } catch {
+      setSyncMessage('Sync failed. Try again.');
+    }
+    setIsSyncing(false);
+  };
 
   const publishedPostsCount = posts.filter((p) => p.status === 'published').length;
 
@@ -110,7 +129,20 @@ export default function AnalyticsPage() {
             </button>
           ))}
         </div>
+
+        <button
+            onClick={handleSync}
+            disabled={isSyncing}
+            className="flex items-center gap-2 bg-[#111111] text-white px-4 py-2 rounded-full text-xs font-bold font-space disabled:opacity-50"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 text-[#E5F23A] ${isSyncing ? 'animate-spin' : ''}`} />
+          <span>{isSyncing ? 'Syncing...' : 'Sync Instagram Analytics'}</span>
+        </button>
       </div>
+
+      {syncMessage && (
+          <p className="text-xs text-[#555555] font-inter">{syncMessage}</p>
+      )}
 
       {/* Surface 1: Growth Line Chart & KPI Block */}
       <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg shadow-black/5 border border-black/5 space-y-6">

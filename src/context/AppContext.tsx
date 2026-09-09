@@ -76,7 +76,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         async function loadPosts() {
             const { data, error } = await supabase
                 .from('posts')
-                .select('*, platform_versions(*)')
+                .select('*, platform_versions(*, analytics_snapshots(*))')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -86,7 +86,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
             const mapped: Post[] = data.map((row) => {
                 const versions: Post['versions'] = {};
-                (row.platform_versions || []).forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus; published_at: string; platform_post_id: string }) => {
+                (row.platform_versions || []).forEach((v: any) => {
+                    const snapshots = v.analytics_snapshots || [];
+                    const latest = snapshots.sort((a: any, b: any) =>
+                        new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime()
+                    )[0];
+
                     versions[v.platform as Platform] = {
                         id: v.id,
                         postId: v.post_id,
@@ -98,6 +103,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                         previewType: previewTypeFor(v.platform as Platform),
                         publishedAt: v.published_at,
                         platformPostId: v.platform_post_id,
+                        metrics: latest
+                            ? {
+                                reach: latest.reach,
+                                likes: latest.likes,
+                                comments: latest.comments,
+                                saves: latest.saves,
+                                shares: 0,
+                                clicks: 0,
+                                engagementRate: latest.reach > 0
+                                    ? Number((((latest.likes + latest.comments) / latest.reach) * 100).toFixed(1))
+                                    : 0,
+                                sparkline: [],
+                            }
+                            : undefined,
                     };
                 });
 
@@ -303,7 +322,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
 
         if (versionIds.length > 0) {
-            
+
             supabase.from('posts').update({ status: 'approved' }).eq('id', postId)
                 .then(({ error }) => { if (error) console.error('Failed to persist post status:', error); });
         }
