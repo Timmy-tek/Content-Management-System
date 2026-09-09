@@ -117,7 +117,7 @@ async function publishToLinkedIn(memberUrn: string, accessToken: string, comment
 
 export async function POST(req: Request) {
     try {
-        const { platformVersionId, platform, imageUrl } = await req.json()
+        const { platformVersionId, platform, imageUrl, caption: captionOverride, hashtags: hashtagsOverride } = await req.json()
 
         const { data: version, error: versionError } = await supabase
             .from('platform_versions')
@@ -125,6 +125,8 @@ export async function POST(req: Request) {
             .eq('id', platformVersionId)
             .single()
         if (versionError) throw versionError
+
+        const captionToUse = captionOverride ?? version.caption
 
         const { data: connection, error: connError } = await supabase
             .from('platform_connections')
@@ -142,26 +144,26 @@ export async function POST(req: Request) {
             platformPostId = await publishToInstagram(
                 connection.account_id, // we'll store this alongside the token
                 connection.access_token,
-                version.caption,
+                captionToUse,
                 imageUrl
             )
         } else if (platform === 'linkedin') {
             platformPostId = await publishToLinkedIn(
                 connection.account_id,
                 connection.access_token,
-                version.caption,
+                captionToUse,
                 imageUrl
             )
         } else if (platform === 'facebook') {
         platformPostId = await publishToFacebook(
             connection.account_id,
             connection.access_token,
-            version.caption,
+            captionToUse,
             imageUrl
         )
     } else if (platform === 'tiktok') {
         if (!imageUrl) throw new Error('TikTok requires an image_url')
-        platformPostId = await publishToTikTok(connection.access_token, version.caption, imageUrl)
+        platformPostId = await publishToTikTok(connection.access_token, captionToUse, imageUrl)
     } else {
             throw new Error(`${platform} publishing not wired yet`)
         }

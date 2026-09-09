@@ -78,15 +78,22 @@ export default function ReviewPage() {
     updatePlatformVersion(postId, activePlatform, { hashtags: tags });
   };
 
-  const handleRegenerate = () => {
+  const handleRegenerate = async () => {
+    if (!currentVersion) return;
     setIsRegenerating(true);
-    setTimeout(() => {
-      let freshCaption = currentVersion?.caption || '';
-      freshCaption = `${freshCaption.replace(/\s*⚡️.*/, '')} ⚡️ [Refined Tone AI]: Optimized for peak algorithm reach and clear CTA.`;
-
-      updatePlatformVersion(postId, activePlatform, { caption: freshCaption });
-      setIsRegenerating(false);
-    }, 800);
+    try {
+      const res = await fetch('/api/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ platformVersionId: currentVersion.id }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      updatePlatformVersion(postId, activePlatform, { caption: data.caption, hashtags: data.hashtags });
+    } catch (err) {
+      console.error('Regenerate failed:', err);
+    }
+    setIsRegenerating(false);
   };
 
   const handleApproveCurrent = () => {

@@ -262,15 +262,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const approvePlatformVersion: AppContextType['approvePlatformVersion'] = (postId, platform) => {
         updatePlatformVersion(postId, platform, { approved: true, status: 'approved' });
 
-        const versionId = posts.find((p) => p.id === postId)?.versions[platform]?.id;
-        if (versionId) {
+        const version = posts.find((p) => p.id === postId)?.versions[platform];
+        if (version) {
             supabase
                 .from('platform_versions')
-                .update({ status: 'approved' })
-                .eq('id', versionId)
-                .then(({ error }) => {
-                    if (error) console.error('Failed to persist approval:', error);
-                });
+                .update({ status: 'approved', caption: version.caption, hashtags: version.hashtags })
+                .eq('id', version.id)
+                .then(({ error }) => { if (error) console.error('Failed to persist approval:', error); });
         }
     };
 
@@ -281,16 +279,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             prev.map((post) => {
                 if (post.id !== postId) return post;
                 const updatedVersions = { ...post.versions };
-
                 Object.keys(updatedVersions).forEach((pKey) => {
                     const plat = pKey as Platform;
-                    if (updatedVersions[plat]) {
-                        versionIds.push(updatedVersions[plat]!.id);
-                        updatedVersions[plat] = {
-                            ...updatedVersions[plat]!,
-                            approved: true,
-                            status: 'approved',
-                        };
+                    const v = updatedVersions[plat];
+                    if (v) {
+                        versionIds.push(v.id);
+                        updatedVersions[plat] = { ...v, approved: true, status: 'approved' };
+
+                        supabase
+                            .from('platform_versions')
+                            .update({ status: 'approved', caption: v.caption, hashtags: v.hashtags })
+                            .eq('id', v.id)
+                            .then(({ error }) => { if (error) console.error('Failed to persist approval:', error); });
                     }
                 });
 
@@ -303,8 +303,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
 
         if (versionIds.length > 0) {
-            supabase.from('platform_versions').update({ status: 'approved' }).in('id', versionIds)
-                .then(({ error }) => { if (error) console.error('Failed to persist approvals:', error); });
+            
             supabase.from('posts').update({ status: 'approved' }).eq('id', postId)
                 .then(({ error }) => { if (error) console.error('Failed to persist post status:', error); });
         }
@@ -325,7 +324,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 const res = await fetch('/api/publish', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ platformVersionId: ver.id, platform: plat, imageUrl: post.imageUrl }),
+                    body: JSON.stringify({
+                        platformVersionId: ver.id,
+                        platform: plat,
+                        imageUrl: post.imageUrl,
+                        caption: ver.caption,
+                        hashtags: ver.hashtags,
+                    }),
                 });
 
                 const data = await res.json();
