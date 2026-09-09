@@ -12,7 +12,7 @@ export async function GET(req: Request) {
     const buffer = await imageRes.arrayBuffer()
 
     const resized = await sharp(Buffer.from(buffer))
-        .resize(1080, 1920, { fit: 'cover', position: 'center' })
+        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 90 })
         .toBuffer()
 
