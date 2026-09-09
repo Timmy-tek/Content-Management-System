@@ -9,10 +9,15 @@ export async function GET(req: Request) {
     const imageRes = await fetch(src)
     if (!imageRes.ok) return NextResponse.json({ error: 'Failed to fetch source image' }, { status: 502 })
 
-    const buffer = await imageRes.arrayBuffer()
+    const buffer = Buffer.from(await imageRes.arrayBuffer())
+    const metadata = await sharp(buffer).metadata()
 
-    const resized = await sharp(Buffer.from(buffer))
-        .resize(1920, 1920, { fit: 'inside', withoutEnlargement: true })
+    const isPortrait = (metadata.height || 0) > (metadata.width || 0)
+    const maxWidth = isPortrait ? 1080 : 1920
+    const maxHeight = isPortrait ? 1920 : 1080
+
+    const resized = await sharp(buffer)
+        .resize(maxWidth, maxHeight, { fit: 'inside', withoutEnlargement: true })
         .jpeg({ quality: 90 })
         .toBuffer()
 
