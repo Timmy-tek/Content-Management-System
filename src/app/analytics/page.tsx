@@ -14,6 +14,13 @@ import {
 } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
 
+
+interface SyncResult {
+  versionId: string;
+  success: boolean;
+  error?: string;
+}
+
 export default function AnalyticsPage() {
   const { posts } = useApp();
 
@@ -30,8 +37,8 @@ export default function AnalyticsPage() {
     try {
       const res = await fetch('/api/sync-analytics', { method: 'POST' });
       const data = await res.json();
-      const succeeded = data.results?.filter((r: any) => r.success).length || 0;
-      const failed = data.results?.filter((r: any) => !r.success).length || 0;
+      const succeeded = data.results?.filter((r: SyncResult) => r.success).length || 0;
+      const failed = data.results?.filter((r: SyncResult) => !r.success).length || 0;
       setSyncMessage(`Synced ${succeeded} post${succeeded === 1 ? '' : 's'}${failed > 0 ? `, ${failed} failed` : ''}. Refresh to see updates.`);
     } catch {
       setSyncMessage('Sync failed. Try again.');

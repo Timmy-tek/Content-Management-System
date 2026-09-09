@@ -35,6 +35,15 @@ interface PlatformConnectionRow {
     created_at: string;
     account_id: string | null;
 }
+interface AnalyticsSnapshotRow {
+    id: string;
+    platform_version_id: string;
+    reach: number;
+    likes: number;
+    comments: number;
+    saves: number;
+    fetched_at: string;
+}
 
 const previewTypeFor = (platform: Platform): PlatformVersion['previewType'] => {
     if (platform === 'instagram') return 'carousel';
@@ -87,8 +96,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const mapped: Post[] = data.map((row) => {
                 const versions: Post['versions'] = {};
                 (row.platform_versions || []).forEach((v: any) => {
-                    const snapshots = v.analytics_snapshots || [];
-                    const latest = snapshots.sort((a: any, b: any) =>
+                    const snapshots: AnalyticsSnapshotRow[] = v.analytics_snapshots || [];
+                    const latest = snapshots.sort((a, b) =>
                         new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime()
                     )[0];
 
