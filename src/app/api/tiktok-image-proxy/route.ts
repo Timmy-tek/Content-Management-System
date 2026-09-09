@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import sharp from 'sharp'
 
 export async function GET(req: Request) {
     const url = new URL(req.url)
@@ -9,11 +10,15 @@ export async function GET(req: Request) {
     if (!imageRes.ok) return NextResponse.json({ error: 'Failed to fetch source image' }, { status: 502 })
 
     const buffer = await imageRes.arrayBuffer()
-    const contentType = imageRes.headers.get('content-type') || 'image/jpeg'
 
-    return new NextResponse(Buffer.from(buffer), {
+    const resized = await sharp(Buffer.from(buffer))
+        .resize(1080, 1920, { fit: 'cover', position: 'center' })
+        .jpeg({ quality: 90 })
+        .toBuffer()
+
+    return new NextResponse(resized, {
         headers: {
-            'Content-Type': contentType,
+            'Content-Type': 'image/jpeg',
             'Cache-Control': 'public, max-age=3600',
         },
     })
