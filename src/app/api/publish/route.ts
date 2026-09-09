@@ -127,6 +127,10 @@ export async function POST(req: Request) {
         if (versionError) throw versionError
 
         const captionToUse = captionOverride ?? version.caption
+        const hashtagsToUse: string[] = hashtagsOverride ?? version.hashtags ?? []
+        const contentToPublish = hashtagsToUse.length > 0
+            ? `${captionToUse}\n\n${hashtagsToUse.join(' ')}`
+            : captionToUse
 
         const { data: connection, error: connError } = await supabase
             .from('platform_connections')
@@ -144,26 +148,26 @@ export async function POST(req: Request) {
             platformPostId = await publishToInstagram(
                 connection.account_id, // we'll store this alongside the token
                 connection.access_token,
-                captionToUse,
+                contentToPublish,
                 imageUrl
             )
         } else if (platform === 'linkedin') {
             platformPostId = await publishToLinkedIn(
                 connection.account_id,
                 connection.access_token,
-                captionToUse,
+                contentToPublish,
                 imageUrl
             )
         } else if (platform === 'facebook') {
         platformPostId = await publishToFacebook(
             connection.account_id,
             connection.access_token,
-            captionToUse,
+            contentToPublish,
             imageUrl
         )
     } else if (platform === 'tiktok') {
         if (!imageUrl) throw new Error('TikTok requires an image_url')
-        platformPostId = await publishToTikTok(connection.access_token, captionToUse, imageUrl)
+        platformPostId = await publishToTikTok(connection.access_token, contentToPublish, imageUrl)
     } else {
             throw new Error(`${platform} publishing not wired yet`)
         }
