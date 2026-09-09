@@ -8,7 +8,7 @@ interface InstagramInsightMetric {
 
 async function fetchInstagramInsights(mediaId: string, accessToken: string) {
     const res = await fetch(
-        `https://graph.instagram.com/v21.0/${mediaId}/insights?metric=impressions,reach,likes,comments,saved,shares&access_token=${accessToken}`
+        `https://graph.instagram.com/v21.0/${mediaId}/insights?metric=reach,likes,comments,saved,shares&access_token=${accessToken}`
     )
     const data = await res.json()
     if (data.error) throw new Error(data.error.message)
