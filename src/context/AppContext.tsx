@@ -45,6 +45,18 @@ interface AnalyticsSnapshotRow {
     fetched_at: string;
 }
 
+interface PlatformVersionRow {
+    id: string;
+    post_id: string;
+    platform: string;
+    caption: string;
+    hashtags: string[];
+    status: PlatformVersionStatus;
+    published_at: string;
+    platform_post_id: string;
+    analytics_snapshots: AnalyticsSnapshotRow[];
+}
+
 const previewTypeFor = (platform: Platform): PlatformVersion['previewType'] => {
     if (platform === 'instagram') return 'carousel';
     if (platform === 'tiktok') return 'reels';
@@ -95,7 +107,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
             const mapped: Post[] = data.map((row) => {
                 const versions: Post['versions'] = {};
-                (row.platform_versions || []).forEach((v: any) => {
+                (row.platform_versions || []).forEach((v: PlatformVersionRow) => {
                     const snapshots: AnalyticsSnapshotRow[] = v.analytics_snapshots || [];
                     const latest = snapshots.sort((a, b) =>
                         new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime()
