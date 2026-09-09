@@ -1,6 +1,11 @@
 import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
 
+interface InstagramInsightMetric {
+    name: string
+    values: { value: number }[]
+}
+
 async function fetchInstagramInsights(mediaId: string, accessToken: string) {
     const res = await fetch(
         `https://graph.instagram.com/v21.0/${mediaId}/insights?metric=impressions,reach,likes,comments,saved,shares&access_token=${accessToken}`
@@ -9,7 +14,7 @@ async function fetchInstagramInsights(mediaId: string, accessToken: string) {
     if (data.error) throw new Error(data.error.message)
 
     const metrics: Record<string, number> = {}
-    data.data.forEach((m: any) => {
+    data.data.forEach((m: InstagramInsightMetric) => {
         metrics[m.name] = m.values[0].value
     })
 
