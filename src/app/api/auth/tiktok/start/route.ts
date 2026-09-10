@@ -8,7 +8,7 @@ export async function GET() {
     const redirectUri = `${process.env.APP_URL}/api/auth/tiktok/callback`;
     const authUrl = new URL('https://www.tiktok.com/v2/auth/authorize/');
     authUrl.searchParams.set('client_key', process.env.TIKTOK_CLIENT_KEY!);
-    authUrl.searchParams.set('scope', 'user.info.basic,video.publish');
+    authUrl.searchParams.set('scope', 'user.info.basic,video.publish,video.list');
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('redirect_uri', redirectUri);
     authUrl.searchParams.set('state', 'tiktok_connect');
