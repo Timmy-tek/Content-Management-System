@@ -31,10 +31,10 @@ export default function PublishPage() {
   });
 
   const [scheduledTimes, setScheduledTimes] = useState<Record<Platform, string>>({
-    instagram: '2025-03-05T14:00',
-    linkedin: '2025-03-05T12:00',
-    tiktok: '2025-03-05T16:00',
-    facebook: '2025-03-05T15:00',
+    instagram: '2026-09-15T14:00',
+    linkedin: '2026-09-15T12:00',
+    tiktok: '2026-09-15T16:00',
+    facebook: '2026-09-15T15:00',
   });
 
   const [isPublishing, setIsPublishing] = useState(false);
@@ -48,13 +48,14 @@ export default function PublishPage() {
 
   if (!post) {
     return (
-      <div className="max-w-md mx-auto my-12 bg-white rounded-3xl p-8 text-center shadow-lg border border-black/5 space-y-4">
-        <h2 className="text-lg font-bold font-space text-[#111111]">
+      <div className="max-w-md mx-auto my-12 bg-surface-card rounded-3xl p-8 text-center border border-surface-border card-shadow space-y-4">
+        <h2 className="text-base font-bold font-display text-foreground">
           Post not found
         </h2>
         <button
+          type="button"
           onClick={() => router.push('/posts')}
-          className="bg-[#111111] text-white px-5 py-2 rounded-full text-xs font-bold font-space"
+          className="bg-header-dark text-white px-5 py-2 rounded-full text-xs font-bold font-display"
         >
           Return to Library
         </button>
@@ -91,12 +92,13 @@ export default function PublishPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-16">
+    <div className="max-w-4xl mx-auto space-y-6 pb-16">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between bg-surface-card rounded-3xl p-4 border border-surface-border card-shadow">
         <button
+          type="button"
           onClick={() => router.push(`/posts/${postId}/review`)}
-          className="inline-flex items-center gap-1.5 text-xs font-bold font-space text-[#111111] bg-white px-3.5 py-2 rounded-full shadow-sm hover:bg-white/80 transition-all cursor-pointer border border-black/5"
+          className="inline-flex items-center gap-1.5 text-xs font-bold font-display text-foreground bg-surface-muted px-3.5 py-2 rounded-full border border-surface-border hover:bg-surface-border transition-all"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Review</span>
@@ -105,73 +107,68 @@ export default function PublishPage() {
         <StatusCapsule status={post.status} size="md" />
       </div>
 
-      <div>
-        <h1 className="text-3xl font-bold font-space text-[#111111]">
+      <div className="bg-surface-card rounded-3xl p-5 border border-surface-border card-shadow">
+        <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-muted block">
+          AUTOMATED PUBLISHER QUEUE
+        </span>
+        <h1 className="text-2xl font-bold font-display text-foreground">
           Publish & Schedule Queue
         </h1>
-        <p className="text-sm text-[#555555] font-inter mt-1">
+        <p className="text-xs text-muted mt-0.5">
           Review approved platform drafts and trigger instantaneous sync or time-slotted queue.
         </p>
       </div>
 
       {publishedDone ? (
         /* Success Screen */
-          <div className="bg-white rounded-3xl p-8 sm:p-12 text-center shadow-xl border border-black/5 space-y-6">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto shadow-inner ${
-                publishResults.every((r) => r.success) || publishResults.length === 0
-                    ? 'bg-[#A9F5A0] text-[#0B4F07]'
-                    : publishResults.some((r) => r.success)
-                        ? 'bg-[#F5E6A3] text-[#574300]'
-                        : 'bg-[#F5A9A9] text-[#5C0A0A]'
-            }`}>
-              <CheckCircle2 className="w-8 h-8" />
-            </div>
-
-            <div className="space-y-2 max-w-md mx-auto">
-              <h2 className="text-2xl font-bold font-space text-[#111111]">
-                {publishResults.length === 0
-                    ? 'Scheduled'
-                    : publishResults.every((r) => r.success)
-                        ? 'Published successfully'
-                        : publishResults.some((r) => r.success)
-                            ? 'Partially published'
-                            : 'Publishing failed'}
-              </h2>
-            </div>
-
-            {publishResults.length > 0 && (
-                <div className="max-w-md mx-auto space-y-2 text-left">
-                  {publishResults.map((r) => (
-                      <div
-                          key={r.platform}
-                          className={`flex items-center justify-between p-3 rounded-2xl text-xs font-inter ${
-                              r.success ? 'bg-[#A9F5A0]/20' : 'bg-[#F5A9A9]/20'
-                          }`}
-                      >
-                        <span className="font-bold font-space capitalize">{r.platform}</span>
-                        <span className={r.success ? 'text-[#0B4F07]' : 'text-[#5C0A0A]'}>
-            {r.success ? 'Published' : r.error}
-          </span>
-                      </div>
-                  ))}
-                </div>
-            )}
-
-            <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-              <button
-                  onClick={() => router.push(`/posts/${postId}`)}
-                  className="bg-[#111111] text-white px-6 py-3 rounded-full text-xs font-bold font-space hover:bg-[#222222] shadow-md transition-all cursor-pointer"
-              >
-                View Post Detail & Branching Graph
-              </button>
-              <button
-                  onClick={() => router.push('/posts')}
-                  className="bg-[#F2F1EF] text-[#111111] px-6 py-3 rounded-full text-xs font-bold font-space hover:bg-[#E2E1DF] transition-all cursor-pointer"
-              >
-                Back to Library
-              </button>
-            </div>
+        <div className="bg-surface-card rounded-3xl p-8 sm:p-12 text-center border border-surface-border card-shadow space-y-6">
+          <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto bg-emerald-100 text-emerald-800">
+            <CheckCircle2 className="w-8 h-8" />
           </div>
+
+          <div className="space-y-2 max-w-md mx-auto">
+            <h2 className="text-2xl font-bold font-display text-foreground">
+              {publishResults.length === 0
+                ? 'Scheduled'
+                : publishResults.every((r) => r.success)
+                  ? 'Published successfully'
+                  : 'Publishing completed'}
+            </h2>
+          </div>
+
+          {publishResults.length > 0 && (
+            <div className="max-w-md mx-auto space-y-2 text-left">
+              {publishResults.map((r) => (
+                <div
+                  key={r.platform}
+                  className={`flex items-center justify-between p-3 rounded-2xl text-xs font-sans ${
+                    r.success ? 'bg-emerald-50 text-emerald-800' : 'bg-rose-50 text-rose-800'
+                  }`}
+                >
+                  <span className="font-bold font-display capitalize">{r.platform}</span>
+                  <span>{r.success ? 'Published' : r.error}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
+            <button
+              type="button"
+              onClick={() => router.push(`/posts/${postId}`)}
+              className="bg-header-dark text-white px-6 py-2.5 rounded-full text-xs font-bold font-display hover:bg-black card-shadow"
+            >
+              View Post Detail
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/posts')}
+              className="bg-surface-muted text-foreground px-6 py-2.5 rounded-full text-xs font-bold font-display hover:bg-surface-border"
+            >
+              Back to Library
+            </button>
+          </div>
+        </div>
       ) : (
         /* Per-platform publish row list */
         <div className="space-y-4">
@@ -184,7 +181,7 @@ export default function PublishPage() {
             return (
               <div
                 key={p}
-                className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 space-y-4 hover:shadow-xl transition-shadow"
+                className="bg-surface-card rounded-2xl p-5 border border-surface-border card-shadow space-y-4"
               >
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -197,14 +194,14 @@ export default function PublishPage() {
                   </div>
 
                   {/* Now vs Schedule Pill Toggle */}
-                  <div className="bg-[#F2F1EF] p-1 rounded-full flex items-center gap-1 border border-black/5">
+                  <div className="bg-surface-muted p-1 rounded-full flex items-center gap-1 border border-surface-border">
                     <button
                       type="button"
                       onClick={() => toggleMode(p, 'now')}
-                      className={`px-3 py-1 rounded-full text-xs font-bold font-space transition-all cursor-pointer ${
+                      className={`px-3 py-1 rounded-full text-xs font-bold font-display transition-all ${
                         currentMode === 'now'
-                          ? 'bg-[#111111] text-white shadow-sm'
-                          : 'text-[#666666] hover:text-[#111111]'
+                          ? 'bg-header-dark text-white card-shadow'
+                          : 'text-muted hover:text-foreground'
                       }`}
                     >
                       Publish Now
@@ -212,10 +209,10 @@ export default function PublishPage() {
                     <button
                       type="button"
                       onClick={() => toggleMode(p, 'schedule')}
-                      className={`px-3 py-1 rounded-full text-xs font-bold font-space transition-all cursor-pointer ${
+                      className={`px-3 py-1 rounded-full text-xs font-bold font-display transition-all ${
                         currentMode === 'schedule'
-                          ? 'bg-[#111111] text-white shadow-sm'
-                          : 'text-[#666666] hover:text-[#111111]'
+                          ? 'bg-header-dark text-white card-shadow'
+                          : 'text-muted hover:text-foreground'
                       }`}
                     >
                       Schedule
@@ -224,32 +221,32 @@ export default function PublishPage() {
                 </div>
 
                 {/* Draft snippet */}
-                <div className="bg-[#F2F1EF] rounded-2xl p-4 text-xs font-inter text-[#222222] leading-relaxed">
+                <div className="bg-surface-muted rounded-xl p-4 text-xs font-sans text-foreground leading-relaxed border border-surface-border">
                   <p className="line-clamp-2">{ver?.caption || 'No caption created.'}</p>
-                  <div className="text-[11px] text-[#2E7BD1] font-semibold mt-1">
+                  <div className="text-[10px] text-muted font-semibold mt-1 font-mono">
                     {ver?.hashtags.join(' ')}
                   </div>
                 </div>
 
                 {/* Schedule datetime picker if in schedule mode */}
                 {currentMode === 'schedule' && (
-                  <div className="flex flex-wrap items-center gap-3 bg-[#F5E6A3]/30 p-3 rounded-2xl border border-[#F5E6A3]">
-                    <Clock className="w-4 h-4 text-[#574300]" />
-                    <span className="text-xs font-bold font-space text-[#574300]">
+                  <div className="flex flex-wrap items-center gap-3 bg-surface-muted p-3 rounded-xl border border-surface-border">
+                    <Clock className="w-4 h-4 text-foreground" />
+                    <span className="text-xs font-bold font-display text-foreground">
                       Target Publication Time:
                     </span>
                     <input
                       type="datetime-local"
                       value={scheduledTimes[p]}
                       onChange={(e) => handleTimeChange(p, e.target.value)}
-                      className="bg-white border border-black/10 rounded-xl px-3 py-1.5 text-xs font-inter text-[#111111] focus:outline-none"
+                      className="bg-surface-card border border-surface-border rounded-lg px-3 py-1 text-xs font-sans text-foreground focus:outline-none"
                     />
                   </div>
                 )}
 
                 {/* Connection status warning if disconnected */}
                 {isDisconnected && (
-                  <div className="flex items-center gap-2 text-xs text-[#5C0A0A] bg-[#F5A9A9]/30 p-3 rounded-2xl border border-[#F5A9A9]">
+                  <div className="flex items-center gap-2 text-xs text-rose-800 bg-rose-100 p-3 rounded-xl border border-rose-300">
                     <AlertTriangle className="w-4 h-4 shrink-0" />
                     <span>
                       This channel account is disconnected. Reconnect token in Account Settings before triggering.
@@ -260,14 +257,15 @@ export default function PublishPage() {
             );
           })}
 
-          {/* Primary Action Button: High contrast solid black (#111111) pill */}
-          <div className="pt-6 flex justify-end">
+          {/* Primary Action Button */}
+          <div className="pt-4 flex justify-end">
             <button
+              type="button"
               onClick={handleExecutePublishing}
               disabled={isPublishing}
-              className="inline-flex items-center justify-center gap-2 bg-[#111111] text-white hover:bg-[#222222] font-bold text-sm px-8 py-3.5 rounded-full shadow-xl hover:shadow-2xl transition-all cursor-pointer font-space"
+              className="inline-flex items-center justify-center gap-2 bg-header-dark text-white hover:bg-black font-bold text-xs px-8 py-3.5 rounded-full card-shadow transition-all font-display"
             >
-              <Send className={`w-4 h-4 text-[#E5F23A] ${isPublishing ? 'animate-bounce' : ''}`} />
+              <Send className={`w-4 h-4 text-accent-yellow ${isPublishing ? 'animate-bounce' : ''}`} />
               <span>{isPublishing ? 'Transmitting to Social APIs...' : 'Publish / Schedule All Channels'}</span>
             </button>
           </div>

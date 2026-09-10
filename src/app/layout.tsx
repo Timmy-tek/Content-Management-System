@@ -3,7 +3,6 @@ import { Space_Grotesk, Inter_Tight } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 import { HeaderToolbar } from '@/components/HeaderToolbar';
-import { SidebarNav } from '@/components/SidebarNav';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -18,8 +17,8 @@ const interTight = Inter_Tight({
 });
 
 export const metadata: Metadata = {
-  title: 'Content Engine — AI Content Adaptation & Publishing',
-  description: 'Adapt single content pieces for Instagram, LinkedIn, TikTok, and Facebook with AI and human review.',
+  title: 'Content Engine — AI Content Adaptation & Publishing Studio',
+  description: 'Industrial-grade content adaptation, review, publishing and cross-platform analytics engine.',
 };
 
 export default function RootLayout({
@@ -29,25 +28,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${interTight.variable}`}>
-      <body className="font-inter antialiased min-h-screen text-[#111111] bg-fixed selection:bg-[#E5F23A] selection:text-[#111111]">
-        {/* Surface 1 "Mesh" Gradient Background Canvas */}
-        <div
-          className="fixed inset-0 -z-10 pointer-events-none"
-          style={{
-            background: 'linear-gradient(135deg, #B8F0D6 0%, #C7C4F0 100%)',
-          }}
-        />
-
+      <body className="font-sans antialiased min-h-screen text-foreground bg-surface selection:bg-accent-yellow selection:text-foreground">
         <AppProvider>
-          {/* Left Vertical Navigation Sidebar */}
-          <SidebarNav />
-
-          {/* Right Main Content Area with Header */}
-          <div className="sm:pl-20 md:pl-24 transition-all duration-300">
-            {/* Top Contextual Header Toolbar */}
+          <div className="flex flex-col min-h-screen bg-surface">
+            {/* Top Precision Header Bar */}
             <HeaderToolbar />
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 min-h-[calc(100vh-6rem)]">
+            {/* Main Application Surface Container */}
+            <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-6 py-4 pb-20">
               {children}
             </main>
           </div>

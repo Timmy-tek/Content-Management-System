@@ -1,41 +1,38 @@
 'use client';
 
-// import React from 'react';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useApp } from '@/context/AppContext';
 import { StatusCapsule } from '@/components/StatusCapsule';
 import { PlatformBadge } from '@/components/PlatformBadge';
 import { supabase } from '@/lib/supabase';
 import {
   Plus,
-  TrendingUp,
-  Users,
-  Radio,
   FileText,
-  ArrowUpRight,
   Sparkles,
-  ChevronRight
+  ChevronRight,
+  Sliders,
+  ChevronLeft,
+  Layers,
+  ArrowUpRight,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const { posts, connections } = useApp();
+  const [selectedFilter, setSelectedFilter] = useState('All');
 
-  // 3. Use useEffect to run the async logic and log the data
   useEffect(() => {
     async function checkConnection() {
-      const { data, error } = await supabase.from('posts').select('*');
-      console.log('Supabase Data:', data);
-      console.log('Supabase Error:', error);
+      const { error } = await supabase.from('posts').select('*');
+      if (error) console.log('Supabase check:', error);
     }
-
     checkConnection();
-  }, []); // The empty array [] means this runs only once when the page loads
+  }, []);
 
-    // Calculate Hero KPIs
   const totalFollowers = connections.reduce((acc, c) => acc + c.followers, 0);
 
-  // Aggregate reach from published post versions
   let totalReach = 0;
   let totalEngagementSum = 0;
   let publishedVersionCount = 0;
@@ -54,264 +51,312 @@ export default function DashboardPage() {
     ? (totalEngagementSum / publishedVersionCount).toFixed(1)
     : '5.4';
 
-  const postsThisWeek = posts.length;
-
   return (
-    <div className="space-[#E2E8F0] space-y-8 pb-12">
-      {/* Top Welcome / Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold font-space text-[#111111] tracking-tight">
-            Content Engine Overview
-          </h1>
-          <p className="text-sm text-[#444444] font-inter mt-1">
-            Automated multi-platform adaptation, human review, and performance tracking.
-          </p>
-        </div>
-
-        {/* Exactly one high-contrast solid black (#111111) pill button for primary action */}
-        <Link
-          href="/posts/new"
-          className="inline-flex items-center justify-center gap-2 bg-[#111111] text-white hover:bg-[#222222] font-semibold text-sm px-6 py-3 rounded-full shadow-lg hover:shadow-xl transition-all cursor-pointer font-space shrink-0 group"
-        >
-          <Plus className="w-4 h-4 text-[#E5F23A] group-hover:rotate-90 transition-transform" />
-          <span>New Post</span>
-        </Link>
-      </div>
-
-      {/* Surface 1: Hero KPI Row - Oversized Space Grotesk tabular-nums */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {/* KPI 1 */}
-        <div className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 flex flex-col justify-between hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between text-[#555555]">
-            <span className="text-xs font-semibold tracking-wide uppercase font-inter">
-              Total Audience
-            </span>
-            <Users className="w-4 h-4 text-[#111111]/40" />
+    <div className="space-y-6 pb-16">
+      {/* 1. Diagnostic Summary Header Panel (Cardiology style medical header) */}
+      <div className="bg-surface-card rounded-3xl p-5 border border-surface-border card-shadow flex flex-col lg:flex-row items-stretch justify-between gap-6">
+        {/* Left Profile / Campaign Card */}
+        <div className="flex items-center gap-4 border-b lg:border-b-0 lg:border-r border-surface-border pr-6 pb-4 lg:pb-0 shrink-0">
+          <div className="relative w-16 h-16 rounded-2xl overflow-hidden bg-header-dark shrink-0 border border-surface-border">
+            <Image
+              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&auto=format&fit=crop&q=80"
+              alt="Sarah Chen"
+              fill
+              className="object-cover"
+            />
           </div>
-          <div className="mt-4 mb-2">
-            <span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
-              {totalFollowers.toLocaleString()}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-[#0B4F07] font-medium mt-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+12.4% vs last month</span>
-          </div>
-        </div>
-
-        {/* KPI 2 */}
-        <div className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 flex flex-col justify-between hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between text-[#555555]">
-            <span className="text-xs font-semibold tracking-wide uppercase font-inter">
-              Total Reach 30d
-            </span>
-            <Radio className="w-4 h-4 text-[#111111]/40" />
-          </div>
-          <div className="mt-4 mb-2">
-            <span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
-              {(totalReach || 220200).toLocaleString()}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-[#0B4F07] font-medium mt-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+28.9% campaign velocity</span>
-          </div>
-        </div>
-
-        {/* KPI 3 */}
-        <div className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 flex flex-col justify-between hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between text-[#555555]">
-            <span className="text-xs font-semibold tracking-wide uppercase font-inter">
-              Posts This Week
-            </span>
-            <FileText className="w-4 h-4 text-[#111111]/40" />
-          </div>
-          <div className="mt-4 mb-2">
-            <span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
-              {postsThisWeek}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-[#555555] font-medium mt-1">
-            <span>4 pending approval in pipeline</span>
-          </div>
-        </div>
-
-        {/* KPI 4 */}
-        <div className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 flex flex-col justify-between hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between text-[#555555]">
-            <span className="text-xs font-semibold tracking-wide uppercase font-inter">
-              Avg. Engagement
-            </span>
-            <Sparkles className="w-4 h-4 text-[#111111]/40" />
-          </div>
-          <div className="mt-4 mb-2">
-            <span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
-              {avgEngagement}%
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-[#0B4F07] font-medium mt-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+1.8% benchmark industry avg</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Surface 1: Connected Accounts Strip */}
-      <div className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 space-y-4">
-        <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-lg font-bold font-space text-[#111111]">
-              Connected Channels & Tokens
+            <span className="text-[11px] font-bold uppercase text-muted tracking-wider block font-sans">
+              Engine Lead & Strategy
+            </span>
+            <h2 className="text-xl font-bold font-display text-foreground leading-tight">
+              Sarah Chen
             </h2>
-            <p className="text-xs text-[#666666] font-inter">
-              Real-time API connection status and sync readiness across platforms.
-            </p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-muted font-medium">Active Campaign: Q3 AI Launch</span>
+              <span className="px-2 py-0.5 rounded-full bg-accent-yellow text-foreground text-[10px] font-bold">
+                Live
+              </span>
+            </div>
           </div>
-          <Link
-            href="/settings/accounts"
-            className="text-xs font-semibold text-[#111111] hover:underline flex items-center gap-1 font-space"
-          >
-            Manage Accounts <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {connections.map((conn) => (
-            <div
-              key={conn.platform}
-              className="bg-[#F2F1EF] rounded-2xl p-4 flex items-center justify-between border border-black/5 hover:border-black/15 transition-all"
+        {/* Right Diagnostic Metrics Grid */}
+        <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 gap-4 items-center">
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider block font-sans">
+              DIAGNOSIS / GOAL
+            </span>
+            <div className="text-base sm:text-lg font-bold font-display text-foreground truncate">
+              Multi-Channel Scale
+            </div>
+            <div className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
+              <CheckCircle2 className="w-3 h-3" /> 100% Ready
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider block font-sans">
+              TOTAL REACH
+            </span>
+            <div className="text-base sm:text-2xl font-bold font-display text-foreground tabular-nums">
+              {(totalReach || 242800).toLocaleString()}
+            </div>
+            <div className="text-xs text-emerald-600 font-medium">
+              +28.9% velocity
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider block font-sans">
+              AUDIENCE
+            </span>
+            <div className="text-base sm:text-2xl font-bold font-display text-foreground tabular-nums">
+              {totalFollowers.toLocaleString()}
+            </div>
+            <div className="text-xs text-muted font-medium">
+              4 Channels Sync
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <span className="text-[10px] font-bold text-muted uppercase tracking-wider block font-sans">
+              AVG ENGAGEMENT
+            </span>
+            <div className="text-base sm:text-2xl font-bold font-display text-foreground tabular-nums">
+              {avgEngagement}%
+            </div>
+            <div className="text-xs text-emerald-600 font-medium">
+              +1.8% benchmark
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Sub-Filter Pills Row */}
+      <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
+        <button
+          type="button"
+          className="w-8 h-8 rounded-full bg-surface-card border border-surface-border flex items-center justify-center text-foreground card-shadow shrink-0"
+        >
+          <Sliders className="w-3.5 h-3.5" />
+        </button>
+        {['All Pipeline', 'Instagram', 'LinkedIn', 'TikTok', 'Facebook', 'Pending Review', 'Scheduled'].map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setSelectedFilter(tab)}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border shrink-0 ${
+              selectedFilter === tab
+                ? 'bg-header-dark text-white border-header-dark font-bold card-shadow'
+                : 'bg-surface-card text-foreground border-surface-border hover:bg-surface-muted'
+            }`}
+          >
+            {tab}
+          </button>
+        ))}
+      </div>
+
+      {/* 2. Interactive Branching Pipeline (Timeline Axis + S-Curve Connectors) */}
+      <div className="relative bg-surface rounded-3xl p-6 border border-surface-border overflow-hidden">
+        {/* Timeline Axis Line */}
+        <div className="absolute top-12 left-0 right-0 h-0.5 bg-surface-border -z-0" />
+
+        <div className="flex items-center justify-between mb-8 relative z-10">
+          <div className="flex items-center gap-3">
+            <span className="w-7 h-7 rounded-full bg-accent-yellow text-foreground flex items-center justify-center text-xs font-bold font-display">
+              01
+            </span>
+            <span className="text-sm font-bold font-display text-foreground">
+              Aug <span className="text-muted text-xs font-normal">1 Week Cycle</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <span className="w-7 h-7 rounded-full bg-accent-yellow text-foreground flex items-center justify-center text-xs font-bold font-display">
+              02
+            </span>
+            <span className="text-sm font-bold font-display text-foreground">
+              Sep <span className="text-muted text-xs font-normal">Active Adaptation Stage</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/posts/new"
+              className="w-10 h-10 rounded-full bg-header-dark text-white flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
             >
-              <div className="flex items-center gap-3">
-                <PlatformBadge platform={conn.platform} size="md" />
-                <div>
-                  <h4 className="text-xs font-bold font-space text-[#111111] leading-tight">
-                    {conn.accountName}
-                  </h4>
-                  <span className="text-[11px] text-[#666666] font-inter block">
-                    {conn.followers.toLocaleString()} followers
-                  </span>
-                </div>
+              <Plus className="w-5 h-5 text-accent-yellow" />
+            </Link>
+          </div>
+        </div>
+
+        {/* Branching SVG Pipeline Node Graph */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative z-10 pt-4">
+          {posts.slice(0, 4).map((post, idx) => (
+            <div key={post.id} className="relative group">
+              {/* SVG S-Curve connector leading from timeline top */}
+              <svg className="absolute -top-10 left-12 w-12 h-10 overflow-visible pointer-events-none stroke-muted-light fill-none" strokeWidth="2">
+                <path d="M 0 0 C 0 20, 24 20, 24 40" />
+              </svg>
+
+              {/* Master Node Pill */}
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-header-dark text-white text-xs font-semibold mb-3 shadow-md">
+                <FileText className="w-3.5 h-3.5 text-accent-yellow" />
+                <span className="truncate max-w-[140px]">{post.title}</span>
+                <span className="text-[10px] bg-white/20 px-1.5 py-0.2 rounded">
+                  {post.platforms.length}x
+                </span>
               </div>
 
-              <StatusCapsule status={conn.status} size="sm" />
+              {/* Diagnostic Card for the post */}
+              <div className="bg-surface-card rounded-2xl p-5 border border-surface-border card-shadow hover:border-foreground/30 transition-all flex flex-col justify-between h-56">
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <StatusCapsule status={post.status} size="sm" />
+                    <span className="text-[10px] text-muted font-mono">#00{idx + 1}</span>
+                  </div>
+                  <h3 className="text-sm font-bold font-display text-foreground line-clamp-2 leading-snug">
+                    {post.title}
+                  </h3>
+                  <p className="text-xs text-muted line-clamp-2 mt-2 leading-relaxed">
+                    {post.sourceContent}
+                  </p>
+                </div>
+
+                {/* Card Footer */}
+                <div className="pt-3 border-t border-surface-border flex items-center justify-between">
+                  <div className="flex items-center -space-x-1">
+                    {post.platforms.map((p) => (
+                      <PlatformBadge key={p} platform={p} size="sm" />
+                    ))}
+                  </div>
+
+                  <Link
+                    href={`/posts/${post.id}`}
+                    className="w-7 h-7 rounded-full bg-surface-muted hover:bg-header-dark hover:text-white flex items-center justify-center transition-colors text-foreground"
+                  >
+                    <ArrowUpRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
+              </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Surface 1: Recent Content Posts Grid */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
+      {/* 3. Lower Diagnostic Grid Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Diagnostic Card 1: AI Tone & Adaptation Health */}
+        <div className="bg-surface-card rounded-2xl p-5 border border-surface-border card-shadow flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold font-display text-foreground uppercase tracking-wider">
+              Adaptation Velocity
+            </span>
+            <Sliders className="w-4 h-4 text-muted" />
+          </div>
+
+          <div className="my-6">
+            <div className="flex items-baseline justify-between mb-2">
+              <span className="text-2xl font-bold font-display text-foreground">
+                98.4<span className="text-sm text-muted">/100</span>
+              </span>
+              <span className="px-2.5 py-1 rounded-full bg-accent-yellow text-foreground text-xs font-bold">
+                Optimal
+              </span>
+            </div>
+            {/* Gauge Mockup */}
+            <div className="h-3 w-full bg-surface-muted rounded-full overflow-hidden p-0.5">
+              <div className="h-full bg-header-dark rounded-full w-[88%]" />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted pt-3 border-t border-surface-border">
+            <span>Average Generation: 2.1s</span>
+            <span className="font-semibold text-foreground">+10% efficiency</span>
+          </div>
+        </div>
+
+        {/* Diagnostic Card 2: Platform Balance */}
+        <div className="bg-surface-card rounded-2xl p-5 border border-surface-border card-shadow flex flex-col justify-between">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold font-display text-foreground uppercase tracking-wider">
+              Platform Allocation
+            </span>
+            <Layers className="w-4 h-4 text-muted" />
+          </div>
+
+          <div className="my-4 space-y-2">
+            {[
+              { platform: 'LinkedIn', pct: '40%' },
+              { platform: 'Instagram', pct: '30%' },
+              { platform: 'TikTok', pct: '20%' },
+              { platform: 'Facebook', pct: '10%' },
+            ].map((item) => (
+              <div key={item.platform} className="flex items-center justify-between text-xs">
+                <span className="font-medium text-foreground">{item.platform}</span>
+                <span className="text-muted font-mono">{item.pct}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-between text-xs text-muted pt-3 border-t border-surface-border">
+            <span>Sync Frequency</span>
+            <span className="font-semibold text-emerald-600">Real-time</span>
+          </div>
+        </div>
+
+        {/* Diagnostic Card 3: Quick Creation Engine Dock */}
+        <div className="bg-header-dark text-white rounded-2xl p-5 card-shadow flex flex-col justify-between">
           <div>
-            <h2 className="text-xl font-bold font-space text-[#111111]">
-              Recent Adapted Posts
-            </h2>
-            <p className="text-xs text-[#666666] font-inter">
-              Master content pieces in active adaptation, review, or published state.
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-xs font-bold font-display text-accent-yellow uppercase tracking-wider flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5" /> Engine Quick Dock
+              </span>
+              <span className="text-[10px] text-white/50">v2.4 Ready</span>
+            </div>
+            <p className="text-xs text-white/80 leading-relaxed mb-4">
+              Paste long-form content or article URLs to trigger instant 4-channel adaptation.
             </p>
           </div>
 
           <Link
-            href="/posts"
-            className="text-xs font-bold text-[#111111] hover:underline flex items-center gap-1 font-space"
+            href="/posts/new"
+            className="w-full py-2.5 rounded-full bg-accent-yellow text-foreground font-bold text-xs font-display flex items-center justify-center gap-2 hover:bg-accent-yellowHover transition-colors"
           >
-            View All Library <ChevronRight className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" /> Start AI Adaptation Workflow
           </Link>
         </div>
+      </div>
 
-        {posts.length === 0 ? (
-          /* Empty state invitation to act */
-          <div className="bg-white rounded-3xl p-12 text-center shadow-lg shadow-black/5 border border-black/5 space-y-4 max-w-lg mx-auto my-8">
-            <div className="w-12 h-12 rounded-full bg-[#F2F1EF] flex items-center justify-center mx-auto text-[#111111]">
-              <FileText className="w-6 h-6" />
-            </div>
-            <h3 className="text-lg font-bold font-space text-[#111111]">
-              No posts yet — upload your first piece of content
-            </h3>
-            <p className="text-xs text-[#666666] font-inter leading-relaxed">
-              Transform blog posts, long videos, or RFCs into multi-channel campaigns in under 60 seconds.
-            </p>
-            <Link
-              href="/posts/new"
-              className="inline-flex items-center gap-2 bg-[#111111] text-white font-semibold text-xs px-5 py-2.5 rounded-full shadow-md hover:bg-[#222222] transition-all font-space"
-            >
-              Create First Post
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {posts.slice(0, 6).map((post) => {
-              // Calculate aggregate reach for card
-              const postReach = Object.values(post.versions).reduce(
-                (sum, v) => sum + (v?.metrics?.reach || 0),
-                0
-              );
+      {/* 4. Bottom Timeline Scrubber Dock Bar */}
+      <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 bg-header-dark text-white rounded-full px-5 py-2.5 shadow-2xl flex items-center gap-4 border border-header-border max-w-2xl w-[92%] justify-between">
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="w-7 h-7 rounded-full bg-accent-yellow text-foreground font-bold text-xs font-display flex items-center justify-center">
+            2026
+          </span>
+        </div>
 
-              return (
-                <div
-                  key={post.id}
-                  className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 flex flex-col justify-between hover:shadow-xl transition-all group"
-                >
-                  <div className="space-y-3">
-                    {/* Header Row */}
-                    <div className="flex items-center justify-between gap-2">
-                      <StatusCapsule status={post.status} size="sm" />
-                      <span className="text-[11px] text-[#777777] font-inter">
-                        {new Date(post.createdAt).toLocaleDateString(undefined, {
-                          month: 'short',
-                          day: 'numeric',
-                        })}
-                      </span>
-                    </div>
+        <div className="flex items-center gap-2 md:gap-4 overflow-x-auto no-scrollbar text-xs font-medium">
+          <span className="opacity-50">Jul</span>
+          <span className="px-3 py-1 rounded-full bg-white/10 text-white font-bold flex items-center gap-1">
+            Aug <span className="w-4 h-4 rounded-full bg-accent-yellow text-foreground text-[10px] flex items-center justify-center">2</span>
+          </span>
+          <span className="px-3 py-1 rounded-full bg-accent-yellow text-foreground font-bold flex items-center gap-1 shadow-md">
+            Sep <span className="w-4 h-4 rounded-full bg-header-dark text-white text-[10px] flex items-center justify-center">5</span>
+          </span>
+          <span className="opacity-50">Oct</span>
+          <span className="opacity-50">Nov</span>
+        </div>
 
-                    {/* Post Title */}
-                    <Link href={`/posts/${post.id}`}>
-                      <h3 className="text-base font-bold font-space text-[#111111] group-hover:text-[#2E7BD1] transition-colors leading-snug line-clamp-2">
-                        {post.title}
-                      </h3>
-                    </Link>
-
-                    {/* Source Content Preview */}
-                    <p className="text-xs text-[#555555] font-inter line-clamp-2 leading-relaxed">
-                      {post.sourceContent}
-                    </p>
-                  </div>
-
-                  {/* Card Footer: Platforms & Metrics */}
-                  <div className="mt-6 pt-4 border-t border-black/5 flex items-center justify-between">
-                    {/* Platform Badges Row */}
-                    <div className="flex items-center -space-x-1.5">
-                      {post.platforms.map((p) => (
-                        <PlatformBadge key={p} platform={p} size="sm" />
-                      ))}
-                    </div>
-
-                    {/* Reach or Review link */}
-                    {postReach > 0 ? (
-                      <div className="text-right">
-                        <span className="text-[10px] text-[#777777] uppercase font-bold font-space block">
-                          Total Reach
-                        </span>
-                        <span className="text-xs font-bold font-space tabular-nums text-[#111111]">
-                          {postReach.toLocaleString()}
-                        </span>
-                      </div>
-                    ) : (
-                      <Link
-                        href={post.status === 'review' ? `/posts/${post.id}/review` : `/posts/${post.id}`}
-                        className="text-xs font-bold text-[#111111] hover:underline flex items-center gap-0.5 font-space"
-                      >
-                        {post.status === 'review' ? 'Review Drafts' : 'View Details'}{' '}
-                        <ArrowUpRight className="w-3.5 h-3.5" />
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        <div className="flex items-center gap-1 shrink-0">
+          <button type="button" className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center">
+            <ChevronLeft className="w-4 h-4 text-white" />
+          </button>
+          <button type="button" className="w-7 h-7 rounded-full hover:bg-white/10 flex items-center justify-center">
+            <ChevronRight className="w-4 h-4 text-white" />
+          </button>
+        </div>
       </div>
     </div>
   );
