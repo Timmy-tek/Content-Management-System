@@ -3,6 +3,7 @@ import { Space_Grotesk, Inter_Tight } from 'next/font/google';
 import './globals.css';
 import { AppProvider } from '@/context/AppContext';
 import { HeaderToolbar } from '@/components/HeaderToolbar';
+import { SidebarNav } from '@/components/SidebarNav';
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ['latin'],
@@ -28,16 +29,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${interTight.variable}`}>
-      <body className="font-sans antialiased min-h-screen text-foreground bg-surface selection:bg-accent-yellow selection:text-foreground">
+      <body className="font-sans antialiased min-h-screen text-foreground bg-surface selection:bg-[#E5F23A] selection:text-foreground">
         <AppProvider>
-          <div className="flex flex-col min-h-screen bg-surface">
-            {/* Top Precision Header Bar */}
-            <HeaderToolbar />
+          {/* Main Container with Floating Vertical Sidebar + Header Bar */}
+          <div className="flex min-h-screen bg-surface">
+            {/* Left Floating Pill Sidebar Navigation */}
+            <SidebarNav />
 
-            {/* Main Application Surface Container */}
-            <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-6 py-4 pb-20">
-              {children}
-            </main>
+            {/* Main Workspace Frame */}
+            <div className="flex-1 flex flex-col min-w-0 sm:pl-20 md:pl-24 transition-all duration-300">
+              {/* Top Header Navigation Bar */}
+              <HeaderToolbar />
+
+              {/* Main Content Area */}
+              <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 pb-20">
+                {children}
+              </main>
+            </div>
           </div>
         </AppProvider>
       </body>
