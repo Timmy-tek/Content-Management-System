@@ -43,7 +43,6 @@ export default function AnalyticsPage() {
     setIsSyncing(false);
   };
 
-  const publishedPostsCount = posts.filter((p) => p.status === 'published').length;
 
   // Aggregate Cross-Post Performance Table Data
   const crossPostRows: {
@@ -86,11 +85,6 @@ export default function AnalyticsPage() {
       if (sortField === 'engagement') return b.engagementRate - a.engagementRate;
       return b.likes - a.likes;
     });
-
-  // Pick insight for Surface 3 Glass panel
-  // const activeInsight = initialInsights.find(
-  //   (i) => selectedPlatform === 'all' || i.platform === selectedPlatform
-  // ) || initialInsights[0];
 
   const [liveInsight, setLiveInsight] = useState<PerformanceInsight | null>(null);
   const [insightLoading, setInsightLoading] = useState(false);

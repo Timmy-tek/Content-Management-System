@@ -2,6 +2,26 @@ import { supabase } from '@/lib/supabase'
 import { generatePerformanceInsight } from '@/lib/ai'
 import { NextResponse } from 'next/server'
 
+
+interface AnalyticsSnapshotRow {
+    id: string
+    platform_version_id: string
+    reach: number
+    likes: number
+    comments: number
+    saves: number
+    fetched_at: string
+}
+
+interface PlatformVersionWithRelations {
+    id: string
+    platform: string
+    caption: string
+    hashtags: string[]
+    posts: { title: string }
+    analytics_snapshots: AnalyticsSnapshotRow[]
+}
+
 export async function POST(req: Request) {
     try {
         const { platform } = await req.json()
@@ -12,11 +32,11 @@ export async function POST(req: Request) {
             .eq('platform', platform)
             .eq('status', 'published')
 
-        const postsData = (versions || [])
-            .filter((v: any) => v.analytics_snapshots?.length > 0)
-            .map((v: any) => {
+        const postsData = ((versions || []) as PlatformVersionWithRelations[])
+            .filter((v) => v.analytics_snapshots?.length > 0)
+            .map((v) => {
                 const latest = v.analytics_snapshots.sort(
-                    (a: any, b: any) => new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime()
+                    (a, b) => new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime()
                 )[0]
                 return {
                     title: v.posts.title,
