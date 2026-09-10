@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useApp } from '@/context/AppContext';
-import { Platform } from '@/types';
-import { initialInsights } from '@/lib/mockData';
+import { Platform, PerformanceInsight } from '@/types';
 import { GlassPanel } from '@/components/GlassPanel';
 import { PlatformBadge } from '@/components/PlatformBadge';
 import { StatusCapsule } from '@/components/StatusCapsule';
@@ -13,7 +12,6 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
-
 
 interface SyncResult {
   versionId: string;
@@ -26,7 +24,6 @@ export default function AnalyticsPage() {
 
   const [selectedPlatform, setSelectedPlatform] = useState<Platform | 'all'>('all');
   const [sortField, setSortField] = useState<'reach' | 'engagement' | 'likes'>('reach');
-  const [isGatedToggle, setIsGatedToggle] = useState(false);
 
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
@@ -91,9 +88,40 @@ export default function AnalyticsPage() {
     });
 
   // Pick insight for Surface 3 Glass panel
-  const activeInsight = initialInsights.find(
-    (i) => selectedPlatform === 'all' || i.platform === selectedPlatform
-  ) || initialInsights[0];
+  // const activeInsight = initialInsights.find(
+  //   (i) => selectedPlatform === 'all' || i.platform === selectedPlatform
+  // ) || initialInsights[0];
+
+  const [liveInsight, setLiveInsight] = useState<PerformanceInsight | null>(null);
+  const [insightLoading, setInsightLoading] = useState(false);
+  const [insightError, setInsightError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (selectedPlatform === 'all') {
+      setLiveInsight(null);
+      return;
+    }
+
+    setInsightLoading(true);
+    setInsightError(null);
+
+    fetch('/api/generate-insight', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ platform: selectedPlatform }),
+    })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.error) {
+            setInsightError(data.error);
+            setLiveInsight(null);
+          } else {
+            setLiveInsight(data);
+          }
+        })
+        .catch(() => setInsightError('Failed to generate insight'))
+        .finally(() => setInsightLoading(false));
+  }, [selectedPlatform]);
 
   const platforms: (Platform | 'all')[] = ['all', 'instagram', 'linkedin', 'tiktok', 'facebook'];
 
@@ -222,22 +250,28 @@ export default function AnalyticsPage() {
               Surface 3 — Dedicated Performance Agent (Scarcity Spec)
             </span>
           </div>
-
-          <button
-            onClick={() => setIsGatedToggle(!isGatedToggle)}
-            className="text-[11px] font-semibold text-[#111111] bg-white px-3 py-1 rounded-full shadow-sm border border-black/5 hover:bg-white/80 transition-all font-space"
-          >
-            {isGatedToggle ? 'Disable Gating Threshold' : 'Test Gated Empty State (<5 posts)'}
-          </button>
         </div>
 
-        <GlassPanel
-          insight={activeInsight}
-          isGated={isGatedToggle}
-          minPostsRequired={5}
-          currentPostCount={publishedPostsCount}
-          onUnlock={() => setIsGatedToggle(false)}
-        />
+        {selectedPlatform === 'all' ? (
+            <div className="bg-white rounded-3xl p-8 text-center shadow-lg border border-black/5">
+              <p className="text-sm text-[#666666] font-inter">Select a specific platform above to see its Performance Agent analysis.</p>
+            </div>
+        ) : insightLoading ? (
+            <div className="bg-white rounded-3xl p-8 text-center shadow-lg border border-black/5">
+              <p className="text-sm text-[#666666] font-inter">Analyzing published posts...</p>
+            </div>
+        ) : insightError ? (
+            <div className="bg-white rounded-3xl p-8 text-center shadow-lg border border-black/5">
+              <p className="text-sm text-[#666666] font-inter">{insightError}</p>
+            </div>
+        ) : liveInsight ? (
+            <GlassPanel
+                insight={liveInsight}
+                isGated={liveInsight.currentPostCount < 5}
+                minPostsRequired={5}
+                currentPostCount={liveInsight.currentPostCount}
+            />
+        ) : null}
       </div>
 
       {/* Surface 1: Cross-Post Performance Table */}

@@ -28,3 +28,26 @@ ${JSON.stringify(analysis)}`
     const text = result.response.text().replace(/```json|```/g, '').trim()
     return JSON.parse(text)
 }
+
+export async function generatePerformanceInsight(
+    platform: string,
+    postsData: { title: string; caption: string; hashtags: string[]; reach: number; likes: number; comments: number; saves: number }[]
+) {
+    const prompt = `ROLE: You are a performance analyst. You find real patterns across a set of published social posts and their metrics.
+RULES:
+- Separate what the data literally shows (observed) from your interpretation of why (interpretation). Never blur the two.
+- Never claim causation from correlation. If posts sharing a trait performed well, describe the shared trait — do not claim the trait caused the performance.
+- Do not draw conclusions from fewer than 5 posts. If there are fewer than 5 posts in the data, set confidence to "low" and keep the interpretation appropriately tentative.
+- Assign confidence based on sample size and consistency of the pattern: "high" only for a clear, consistent pattern across many posts; "medium" for a plausible but smaller-sample pattern; "low" for a weak or early signal.
+- impactScore is 0-100, representing how strong/clear the pattern is, not how "good" the results were.
+OUTPUT FORMAT: Return ONLY valid JSON, no markdown fences:
+{ "observed": "", "interpretation": "", "confidence": "low"|"medium"|"high", "impactScore": 0 }
+
+PLATFORM: ${platform}
+POSTS DATA:
+${JSON.stringify(postsData)}`
+
+    const result = await model.generateContent(prompt)
+    const text = result.response.text().replace(/```json|```/g, '').trim()
+    return JSON.parse(text)
+}
