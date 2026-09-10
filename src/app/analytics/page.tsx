@@ -143,7 +143,7 @@ export default function AnalyticsPage() {
             className="flex items-center gap-2 bg-[#111111] text-white px-4 py-2 rounded-full text-xs font-bold font-space disabled:opacity-50"
         >
           <RefreshCw className={`w-3.5 h-3.5 text-[#E5F23A] ${isSyncing ? 'animate-spin' : ''}`} />
-          <span>{isSyncing ? 'Syncing...' : 'Sync Instagram Analytics'}</span>
+          <span>{isSyncing ? 'Syncing...' : 'Sync Analytics'}</span>
         </button>
       </div>
 

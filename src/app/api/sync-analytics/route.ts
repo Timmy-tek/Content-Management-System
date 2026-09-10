@@ -26,39 +26,68 @@ async function fetchInstagramInsights(mediaId: string, accessToken: string) {
     }
 }
 
+interface FacebookPostFields {
+    likes?: { summary: { total_count: number } }
+    comments?: { summary: { total_count: number } }
+}
+
+async function fetchFacebookInsights(postId: string, accessToken: string) {
+    const fieldsRes = await fetch(
+        `https://graph.facebook.com/v21.0/${postId}?fields=likes.summary(true),comments.summary(true)&access_token=${accessToken}`
+    )
+    const fieldsData: FacebookPostFields & { error?: { message: string } } = await fieldsRes.json()
+    if (fieldsData.error) throw new Error(fieldsData.error.message)
+
+    const insightsRes = await fetch(
+        `https://graph.facebook.com/v21.0/${postId}/insights?metric=post_impressions_unique&access_token=${accessToken}`
+    )
+    const insightsData = await insightsRes.json()
+    const reach = insightsData.data?.[0]?.values?.[0]?.value || 0
+
+    return {
+        reach,
+        likes: fieldsData.likes?.summary.total_count || 0,
+        comments: fieldsData.comments?.summary.total_count || 0,
+        saves: 0, // Facebook has no equivalent concept
+    }
+}
+
+
+
 export async function POST() {
     const { data: connections } = await supabase.from('platform_connections').select('*')
-    const igConnection = connections?.find((c) => c.platform === 'instagram' && c.connected)
-
-    if (!igConnection) {
-        return NextResponse.json({ error: 'Instagram not connected' }, { status: 400 })
-    }
-
-    const { data: publishedVersions } = await supabase
-        .from('platform_versions')
-        .select('*')
-        .eq('platform', 'instagram')
-        .eq('status', 'published')
-        .not('platform_post_id', 'is', null)
-
     const results = []
 
-    for (const version of publishedVersions || []) {
-        try {
-            const insights = await fetchInstagramInsights(version.platform_post_id, igConnection.access_token)
+    for (const platformName of ['instagram', 'facebook']) {
+        const connection = connections?.find((c) => c.platform === platformName && c.connected)
+        if (!connection) continue
 
-            await supabase.from('analytics_snapshots').insert({
-                platform_version_id: version.id,
-                reach: insights.reach,
-                likes: insights.likes,
-                comments: insights.comments,
-                saves: insights.saves,
-            })
+        const { data: publishedVersions } = await supabase
+            .from('platform_versions')
+            .select('*')
+            .eq('platform', platformName)
+            .eq('status', 'published')
+            .not('platform_post_id', 'is', null)
 
-            results.push({ versionId: version.id, success: true })
-        } catch (err) {
-            const message = err instanceof Error ? err.message : 'Sync failed'
-            results.push({ versionId: version.id, success: false, error: message })
+        for (const version of publishedVersions || []) {
+            try {
+                const insights = platformName === 'instagram'
+                    ? await fetchInstagramInsights(version.platform_post_id, connection.access_token)
+                    : await fetchFacebookInsights(version.platform_post_id, connection.access_token)
+
+                await supabase.from('analytics_snapshots').insert({
+                    platform_version_id: version.id,
+                    reach: insights.reach,
+                    likes: insights.likes,
+                    comments: insights.comments,
+                    saves: insights.saves,
+                })
+
+                results.push({ versionId: version.id, success: true })
+            } catch (err) {
+                const message = err instanceof Error ? err.message : 'Sync failed'
+                results.push({ versionId: version.id, success: false, error: message })
+            }
         }
     }
 
