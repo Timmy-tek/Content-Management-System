@@ -29,10 +29,10 @@ export function SidebarNav() {
   ];
 
   return (
-    <aside className="group/sidebar fixed left-3 top-3 bottom-3 z-50 hidden sm:flex flex-col justify-between items-center py-4 px-2 w-16 md:w-20 hover:w-56 bg-[#F0EEE6] rounded-[28px] border border-[#E2DFD5] shadow-md transition-all duration-300 ease-in-out pointer-events-auto overflow-hidden">
-      {/* Top Stack: Back Collapse Arrow & Navigation Circles */}
+    <aside className="group/sidebar fixed left-3 top-[72px] bottom-3 z-30 hidden sm:flex flex-col justify-between items-center py-4 px-2 w-16 md:w-20 hover:w-56 bg-[#F0EEE6] rounded-[28px] border border-[#E2DFD5] shadow-md transition-all duration-300 ease-in-out pointer-events-auto overflow-hidden">
+      {/* Top Stack: Brand Logo & Navigation Circles */}
       <div className="flex flex-col items-center gap-3 w-full">
-        {/* Top Circular Brand Logo or Collapse Icon */}
+        {/* Top Circular Brand Logo */}
         <Link
           href="/"
           className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-[#111111] text-[#E5F23A] flex items-center justify-center font-bold font-display text-sm shadow-sm hover:scale-105 transition-transform shrink-0"
@@ -82,11 +82,10 @@ export function SidebarNav() {
         </nav>
       </div>
 
-      {/* Bottom Controls: Theme Mode Indicator & AI Status */}
+      {/* Bottom Controls: Sun/Moon Theme Mode Switchers */}
       <div className="flex flex-col items-center gap-2 w-full pt-2">
         <div className="w-8 h-px bg-[#DCD8CC] my-1" />
 
-        {/* Moon / Sun Theme Mode Buttons */}
         <div className="flex flex-col gap-2 items-center w-full">
           <button
             type="button"

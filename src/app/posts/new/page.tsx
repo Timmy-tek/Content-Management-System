@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { Platform, Post } from '@/types';
@@ -13,7 +12,7 @@ import {
   FileText,
   Video,
   Headphones,
-  ImageIcon,
+  Image as ImageIcon,
   ArrowRight
 } from 'lucide-react';
 
@@ -44,24 +43,6 @@ export default function NewPostPage() {
       setSelectedPlatforms([...selectedPlatforms, p]);
     }
   };
-
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-
-  async function uploadImage(file: File): Promise<string> {
-    const formData = new FormData();
-    formData.append('file', file);
-
-    const res = await fetch('/api/upload-image', {
-      method: 'POST',
-      body: formData,
-    });
-
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Image upload failed');
-
-    return data.imageUrl;
-  }
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,27 +84,42 @@ export default function NewPostPage() {
 
   const allPlatforms: Platform[] = ['instagram', 'linkedin', 'tiktok', 'facebook'];
 
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  async function uploadImage(file: File): Promise<string> {
+    const formData = new FormData()
+    formData.append('file', file)
+
+    const res = await fetch('/api/upload-image', {
+      method: 'POST',
+      body: formData,
+    })
+
+    const data = await res.json()
+    if (!res.ok) throw new Error(data.error || 'Image upload failed')
+
+    return data.imageUrl
+  }
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-16">
+    <div className="max-w-4xl mx-auto space-y-8 pb-16">
       {/* Page Header */}
-      <div className="bg-surface-card rounded-3xl p-5 border border-surface-border card-shadow">
-        <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-muted block">
-          AI GENERATION WORKBENCH
-        </span>
-        <h1 className="text-2xl font-bold font-display text-foreground">
+      <div>
+        <h1 className="text-3xl font-bold font-space text-[#111111]">
           New Content Engine Adaptation
         </h1>
-        <p className="text-xs text-muted mt-0.5">
+        <p className="text-sm text-[#555555] font-inter mt-1">
           Upload or paste source content to trigger multi-channel AI adaptation and human review routing.
         </p>
       </div>
 
-      {/* Surface Diagnostic Card Form */}
-      <form onSubmit={handleGenerate} className="bg-surface-card rounded-3xl p-6 sm:p-8 border border-surface-border card-shadow space-y-6">
+      {/* Surface 1 White Rounded Card Form */}
+      <form onSubmit={handleGenerate} className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg shadow-black/5 border border-black/5 space-y-6">
 
         {/* Content Type Selector Chips */}
         <div>
-          <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
             1. Source Content Type
           </label>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -135,13 +131,13 @@ export default function NewPostPage() {
                   key={ct.id}
                   type="button"
                   onClick={() => setContentType(ct.id)}
-                  className={`flex items-center gap-2.5 p-3 rounded-xl border text-xs font-semibold transition-all font-display ${
+                  className={`flex items-center gap-2.5 p-3 rounded-2xl border text-xs font-medium transition-all cursor-pointer font-space ${
                     isSelected
-                      ? 'bg-header-dark text-white border-header-dark card-shadow'
-                      : 'bg-surface-muted text-foreground border-surface-border hover:bg-surface-border'
+                      ? 'bg-[#111111] text-white border-[#111111] shadow-md'
+                      : 'bg-[#F2F1EF] text-[#222222] border-black/5 hover:bg-[#EAE8E4]'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isSelected ? 'text-accent-yellow' : 'text-muted'}`} />
+                  <Icon className={`w-4 h-4 ${isSelected ? 'text-[#E5F23A]' : 'text-[#666666]'}`} />
                   <span>{ct.label}</span>
                 </button>
               );
@@ -151,7 +147,7 @@ export default function NewPostPage() {
 
         {/* Master Title */}
         <div>
-          <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
             2. Content Title or Topic Headline
           </label>
           <input
@@ -160,13 +156,13 @@ export default function NewPostPage() {
             placeholder="e.g. Scaling Engineering Culture in Remote-First Companies"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className="w-full bg-surface-muted border border-surface-border rounded-xl px-4 py-2.5 text-xs text-foreground placeholder-muted focus:outline-none focus:ring-1 focus:ring-foreground font-sans"
+            className="w-full bg-[#F2F1EF] border border-black/10 rounded-2xl px-4 py-3 text-sm text-[#111111] placeholder-black/40 focus:outline-none focus:ring-2 focus:ring-[#111111] transition-all font-inter"
           />
         </div>
 
         {/* Source Content Drop / Text Area */}
         <div>
-          <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
             3. Source Text or Script
           </label>
           <div className="relative">
@@ -176,71 +172,69 @@ export default function NewPostPage() {
               placeholder="Paste master article body, video transcript, audio show notes, or key talking points here..."
               value={sourceContent}
               onChange={(e) => setSourceContent(e.target.value)}
-              className="w-full bg-surface-muted border border-surface-border rounded-xl p-4 text-xs text-foreground placeholder-muted focus:outline-none focus:ring-1 focus:ring-foreground font-sans leading-relaxed"
+              className="w-full bg-[#F2F1EF] border border-black/10 rounded-2xl p-4 text-sm text-[#111111] placeholder-black/40 focus:outline-none focus:ring-2 focus:ring-[#111111] transition-all font-inter leading-relaxed"
             />
-            <div className="absolute bottom-3 right-3 flex items-center gap-1.5 text-[10px] text-muted bg-surface-card px-2.5 py-1 rounded-full border border-surface-border font-sans">
-              <Upload className="w-3 h-3 text-foreground" />
+            <div className="absolute bottom-3 right-3 flex items-center gap-2 text-[11px] text-[#666666] bg-white/80 px-2.5 py-1 rounded-full border border-black/10 font-inter">
+              <Upload className="w-3 h-3 text-[#111111]" />
               <span>Or drag .txt / .md file</span>
             </div>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
             Cover Image (required for Instagram)
           </label>
           <input
-            type="file"
-            accept="image/*"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) {
-                setImageFile(file);
-                setImagePreview(URL.createObjectURL(file));
-              }
-            }}
-            className="w-full text-xs font-sans text-muted file:mr-4 file:py-1.5 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:font-display file:bg-header-dark file:text-white hover:file:bg-black file:cursor-pointer"
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  setImageFile(file);
+                  setImagePreview(URL.createObjectURL(file));
+                }
+              }}
+              className="w-full text-xs font-inter text-[#555555] file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-bold file:font-space file:bg-[#111111] file:text-white hover:file:bg-[#222222] file:cursor-pointer"
           />
           {imagePreview && (
-            <div className="mt-3 relative w-full h-48 rounded-xl overflow-hidden border border-surface-border">
-              <Image src={imagePreview} alt="Preview" fill className="object-cover" />
-            </div>
+              <img src={imagePreview} alt="Preview" className="mt-3 rounded-2xl max-h-48 object-cover" />
           )}
         </div>
 
         {/* Campaign Goal & Target Audience Fields */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
               Primary Goal
             </label>
             <input
               type="text"
               value={goal}
               onChange={(e) => setGoal(e.target.value)}
-              className="w-full bg-surface-muted border border-surface-border rounded-xl px-4 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-foreground font-sans"
+              className="w-full bg-[#F2F1EF] border border-black/10 rounded-2xl px-4 py-2.5 text-xs text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#111111] font-inter"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
               Target Audience Profile
             </label>
             <input
               type="text"
               value={audience}
               onChange={(e) => setAudience(e.target.value)}
-              className="w-full bg-surface-muted border border-surface-border rounded-xl px-4 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-foreground font-sans"
+              className="w-full bg-[#F2F1EF] border border-black/10 rounded-2xl px-4 py-2.5 text-xs text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#111111] font-inter"
             />
           </div>
         </div>
 
         {/* Target Platform Selection Chips */}
         <div>
-          <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
             4. Target Adaptation Channels
           </label>
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-3">
             {allPlatforms.map((p) => {
               const isSelected = selectedPlatforms.includes(p);
               return (
@@ -248,40 +242,40 @@ export default function NewPostPage() {
                   key={p}
                   type="button"
                   onClick={() => togglePlatform(p)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold font-display transition-all border ${
+                  className={`flex items-center gap-2 px-4 py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer font-space border ${
                     isSelected
-                      ? 'bg-header-dark text-white border-header-dark card-shadow'
-                      : 'bg-surface-muted text-foreground border-surface-border hover:bg-surface-border'
+                      ? 'bg-[#111111] text-white border-[#111111] shadow-md'
+                      : 'bg-[#F2F1EF] text-[#555555] border-black/5 hover:bg-[#EAE8E4]'
                   }`}
                 >
                   <PlatformBadge platform={p} size="sm" />
                   <span className="capitalize">{p}</span>
-                  {isSelected && <Check className="w-3.5 h-3.5 text-accent-yellow ml-1" />}
+                  {isSelected && <Check className="w-3.5 h-3.5 text-[#E5F23A] ml-1" />}
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Form Action */}
-        <div className="pt-4 border-t border-surface-border flex items-center justify-between">
-          <span className="text-xs text-muted font-sans hidden sm:inline-block">
-            Generation speed: ~2.1 seconds via Gemini Pro Engine
+        {/* Form Action: Single Black Pill CTA */}
+        <div className="pt-4 border-t border-black/5 flex items-center justify-between">
+          <span className="text-xs text-[#666666] font-inter hidden sm:inline-block">
+            Takes about 15-20 seconds — analyzing, then adapting per platform
           </span>
 
           <button
             type="submit"
             disabled={isGenerating || !title.trim() || !sourceContent.trim()}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-header-dark text-white hover:bg-black disabled:opacity-50 font-bold text-xs px-7 py-3 rounded-full card-shadow transition-all font-display"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#111111] text-white hover:bg-[#222222] disabled:opacity-50 font-bold text-sm px-8 py-3.5 rounded-full shadow-lg hover:shadow-xl transition-all cursor-pointer font-space"
           >
             {isGenerating ? (
               <>
-                <Sparkles className="w-4 h-4 text-accent-yellow animate-spin" />
-                <span>Running Engine & Adapting...</span>
+                <Sparkles className="w-4 h-4 text-[#E5F23A] animate-spin" />
+                <span>Running Pipeline & Adapting...</span>
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4 text-accent-yellow" />
+                <Sparkles className="w-4 h-4 text-[#E5F23A]" />
                 <span>Generate & Route to Review</span>
                 <ArrowRight className="w-4 h-4 text-white" />
               </>
@@ -289,9 +283,9 @@ export default function NewPostPage() {
           </button>
         </div>
         {error && (
-          <div className="bg-rose-100 border border-rose-300 rounded-xl px-4 py-3 text-xs text-rose-800 font-sans">
-            {error}
-          </div>
+            <div className="bg-[#F5A9A9]/20 border border-[#F5A9A9] rounded-2xl px-4 py-3 text-sm text-[#8B2C2C] font-inter">
+              {error}
+            </div>
         )}
       </form>
     </div>

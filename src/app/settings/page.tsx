@@ -22,6 +22,7 @@ export default function SettingsPage() {
   const [ctaStyle, setCtaStyle] = useState(brandSettings.ctaStyle);
   const [targetAudience, setTargetAudience] = useState(brandSettings.targetAudience);
 
+  // Masked API Key state
   const [showKeys, setShowKeys] = useState<Record<keyof ApiSettings, boolean>>({
     geminiApiKey: false,
     instagramClientId: false,
@@ -120,47 +121,44 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <div className="max-w-4xl mx-auto space-y-8 pb-20">
       {/* Header */}
-      <div className="bg-surface-card rounded-3xl p-5 border border-surface-border card-shadow">
-        <span className="text-[10px] font-bold font-sans uppercase tracking-wider text-muted block">
-          ENGINE GOVERNANCE
-        </span>
-        <h1 className="text-2xl font-bold font-display text-foreground">
+      <div>
+        <h1 className="text-3xl font-bold font-space text-[#111111]">
           Engine Settings & Governance
         </h1>
-        <p className="text-xs text-muted mt-0.5">
+        <p className="text-sm text-[#555555] font-inter mt-1">
           Configure Brand Voice rules, tone bounds, and developer API endpoint key placeholders.
         </p>
       </div>
 
-      <form onSubmit={handleSaveSettings} className="space-y-6">
+      <form onSubmit={handleSaveSettings} className="space-y-8">
 
-        {/* SECTION 1: BRAND VOICE */}
-        <div className="bg-surface-card rounded-3xl p-6 sm:p-8 border border-surface-border card-shadow space-y-6">
-          <div className="flex items-center gap-2 border-b border-surface-border pb-4">
-            <Sparkles className="w-5 h-5 text-foreground" />
-            <h2 className="text-lg font-bold font-display text-foreground">
+        {/* SECTION 1: BRAND VOICE & GOVERNANCE */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg shadow-black/5 border border-black/5 space-y-6">
+          <div className="flex items-center gap-2 border-b border-black/5 pb-4">
+            <Sparkles className="w-5 h-5 text-[#111111]" />
+            <h2 className="text-xl font-bold font-space text-[#111111]">
               Brand Voice & AI Adaptation Rules
             </h2>
           </div>
 
           {/* Tone Tags */}
           <div>
-            <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
               Approved Brand Tone Attributes
             </label>
             <div className="flex flex-wrap items-center gap-2 mb-3">
               {brandSettings.tone.map((tag) => (
                 <span
                   key={tag}
-                  className="bg-surface-muted border border-surface-border text-foreground px-3.5 py-1.5 rounded-full text-xs font-bold font-display flex items-center gap-1.5"
+                  className="bg-[#D8CCF5] text-[#111111] px-3.5 py-1.5 rounded-full text-xs font-bold font-space flex items-center gap-1.5"
                 >
                   <span>{tag}</span>
                   <button
                     type="button"
                     onClick={() => handleRemoveTone(tag)}
-                    className="hover:text-rose-600 p-0.5"
+                    className="hover:text-red-700 p-0.5"
                   >
                     <X className="w-3 h-3" />
                   </button>
@@ -174,12 +172,12 @@ export default function SettingsPage() {
                 placeholder="Add tone attribute (e.g. Authoritative)"
                 value={toneInput}
                 onChange={(e) => setToneInput(e.target.value)}
-                className="flex-1 bg-surface-muted border border-surface-border rounded-full px-4 py-1.5 text-xs font-sans text-foreground focus:outline-none"
+                className="flex-1 bg-[#F2F1EF] border border-black/10 rounded-full px-4 py-2 text-xs font-inter focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleAddTone}
-                className="bg-header-dark text-white p-2 rounded-full hover:bg-black"
+                className="bg-[#111111] text-white p-2 rounded-full hover:bg-[#222222]"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -188,14 +186,14 @@ export default function SettingsPage() {
 
           {/* Words to Avoid */}
           <div>
-            <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+            <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
               Blacklisted Words & Buzzwords
             </label>
             <div className="flex flex-wrap items-center gap-2 mb-3">
               {brandSettings.wordsToAvoid.map((word) => (
                 <span
                   key={word}
-                  className="bg-rose-100 text-rose-800 border border-rose-300 px-3.5 py-1.5 rounded-full text-xs font-bold font-display flex items-center gap-1.5"
+                  className="bg-[#F5A9A9] text-[#5C0A0A] px-3.5 py-1.5 rounded-full text-xs font-bold font-space flex items-center gap-1.5"
                 >
                   <span>{word}</span>
                   <button
@@ -215,12 +213,12 @@ export default function SettingsPage() {
                 placeholder="Add word to avoid (e.g. synergy)"
                 value={avoidInput}
                 onChange={(e) => setAvoidInput(e.target.value)}
-                className="flex-1 bg-surface-muted border border-surface-border rounded-full px-4 py-1.5 text-xs font-sans text-foreground focus:outline-none"
+                className="flex-1 bg-[#F2F1EF] border border-black/10 rounded-full px-4 py-2 text-xs font-inter focus:outline-none"
               />
               <button
                 type="button"
                 onClick={handleAddAvoid}
-                className="bg-header-dark text-white p-2 rounded-full hover:bg-black"
+                className="bg-[#111111] text-white p-2 rounded-full hover:bg-[#222222]"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -230,42 +228,42 @@ export default function SettingsPage() {
           {/* CTA Style & Audience */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
                 CTA Hook Philosophy
               </label>
               <input
                 type="text"
                 value={ctaStyle}
                 onChange={(e) => setCtaStyle(e.target.value)}
-                className="w-full bg-surface-muted border border-surface-border rounded-xl px-4 py-2 text-xs font-sans text-foreground focus:outline-none"
+                className="w-full bg-[#F2F1EF] border border-black/10 rounded-2xl px-4 py-2.5 text-xs font-inter text-[#111111] focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold font-display text-foreground uppercase tracking-wider mb-2">
+              <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
                 Target Executive Audience
               </label>
               <input
                 type="text"
                 value={targetAudience}
                 onChange={(e) => setTargetAudience(e.target.value)}
-                className="w-full bg-surface-muted border border-surface-border rounded-xl px-4 py-2 text-xs font-sans text-foreground focus:outline-none"
+                className="w-full bg-[#F2F1EF] border border-black/10 rounded-2xl px-4 py-2.5 text-xs font-inter text-[#111111] focus:outline-none"
               />
             </div>
           </div>
         </div>
 
-        {/* SECTION 2: DEVELOPER API KEYS */}
-        <div className="bg-surface-card rounded-3xl p-6 sm:p-8 border border-surface-border card-shadow space-y-6">
-          <div className="flex items-center justify-between border-b border-surface-border pb-4">
+        {/* SECTION 2: DEVELOPER API KEYS — WIRE TO BACKEND */}
+        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg shadow-black/5 border border-black/5 space-y-6">
+          <div className="flex items-center justify-between border-b border-black/5 pb-4">
             <div className="flex items-center gap-2">
-              <Key className="w-5 h-5 text-foreground" />
+              <Key className="w-5 h-5 text-[#111111]" />
               <div>
-                <h2 className="text-lg font-bold font-display text-foreground">
+                <h2 className="text-xl font-bold font-space text-[#111111]">
                   Developer — Wire to Backend
                 </h2>
-                <p className="text-xs text-muted">
-                  API keys and client credentials configured for channel syncing.
+                <p className="text-xs text-[#666666] font-inter">
+                  Every real API key, client secret, or webhook token is represented by a masked placeholder input with a &quot;Not connected — wire to backend&quot; note.
                 </p>
               </div>
             </div>
@@ -279,14 +277,15 @@ export default function SettingsPage() {
               const isVisible = showKeys[field.key];
 
               return (
-                <div key={field.key} className="bg-surface-muted p-4 rounded-xl border border-surface-border space-y-2">
+                <div key={field.key} className="bg-[#F2F1EF] p-4 rounded-2xl border border-black/5 space-y-2">
                   <div className="flex items-center justify-between">
-                    <label className="text-xs font-bold font-display text-foreground">
+                    <label className="text-xs font-bold font-space text-[#111111]">
                       {field.label}
                     </label>
 
+                    {/* Helper badge "Not set" / "Not connected — wire to backend" */}
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted font-sans italic">
+                      <span className="text-[10px] text-[#666666] font-inter italic">
                         {field.helperNote}
                       </span>
                       <StatusCapsule status="needs_attention" label="Not set" size="sm" />
@@ -299,12 +298,12 @@ export default function SettingsPage() {
                       placeholder={field.placeholder}
                       value={val}
                       onChange={(e) => handleApiChange(field.key, e.target.value)}
-                      className="w-full bg-surface-card border border-surface-border rounded-lg px-4 py-2 text-xs font-mono text-foreground pr-10 focus:outline-none"
+                      className="w-full bg-white border border-black/10 rounded-xl px-4 py-2.5 text-xs font-mono text-[#111111] pr-10 focus:outline-none focus:ring-2 focus:ring-[#111111]"
                     />
                     <button
                       type="button"
                       onClick={() => toggleShowKey(field.key)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-foreground p-1"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-[#777777] hover:text-[#111111] p-1"
                     >
                       {isVisible ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -315,24 +314,25 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        {/* Save Bar */}
+        {/* Submit / Save Bar */}
+        {/* Exactly one high-contrast solid black (#111111) pill button per screen */}
         <div className="flex items-center justify-between pt-2">
           {savedSuccess ? (
-            <span className="text-xs font-bold font-display text-emerald-800 bg-emerald-100 px-4 py-2 rounded-full inline-flex items-center gap-1.5 border border-emerald-300">
+            <span className="text-xs font-bold font-space text-[#0B4F07] bg-[#A9F5A0] px-4 py-2 rounded-full inline-flex items-center gap-1.5">
               <Check className="w-4 h-4" />
               Settings & Governance Saved
             </span>
           ) : (
-            <span className="text-xs text-muted font-sans">
-              Stored locally for execution.
+            <span className="text-xs text-[#666666] font-inter">
+              All settings are stored locally for mock execution.
             </span>
           )}
 
           <button
             type="submit"
-            className="inline-flex items-center justify-center gap-2 bg-header-dark text-white hover:bg-black font-bold text-xs px-8 py-3 rounded-full card-shadow transition-all font-display"
+            className="inline-flex items-center justify-center gap-2 bg-[#111111] text-white hover:bg-[#222222] font-bold text-sm px-8 py-3.5 rounded-full shadow-xl transition-all cursor-pointer font-space"
           >
-            <Check className="w-4 h-4 text-accent-yellow" />
+            <Check className="w-4 h-4 text-[#E5F23A]" />
             <span>Save Engine Rules</span>
           </button>
         </div>

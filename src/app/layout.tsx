@@ -31,18 +31,17 @@ export default function RootLayout({
     <html lang="en" className={`${spaceGrotesk.variable} ${interTight.variable}`}>
       <body className="font-sans antialiased min-h-screen text-foreground bg-surface selection:bg-[#E5F23A] selection:text-foreground">
         <AppProvider>
-          {/* Main Container with Floating Vertical Sidebar + Header Bar */}
-          <div className="flex min-h-screen bg-surface">
-            {/* Left Floating Pill Sidebar Navigation */}
-            <SidebarNav />
+          <div className="flex flex-col min-h-screen bg-surface">
+            {/* Top Header Bar spans edge-to-edge full width */}
+            <HeaderToolbar />
 
-            {/* Main Workspace Frame */}
-            <div className="flex-1 flex flex-col min-w-0 sm:pl-20 md:pl-24 transition-all duration-300">
-              {/* Top Header Navigation Bar */}
-              <HeaderToolbar />
+            {/* Main Section under Header Bar: Sidebar (Left) + Content (Right) */}
+            <div className="flex-1 flex relative">
+              {/* Vertical Sidebar placed underneath top header bar */}
+              <SidebarNav />
 
-              {/* Main Content Area */}
-              <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 pb-20">
+              {/* Main Content Workspace Canvas */}
+              <main className="flex-1 max-w-[1600px] w-full mx-auto px-4 sm:px-6 py-6 pb-20 sm:pl-24 md:pl-28 transition-all duration-300">
                 {children}
               </main>
             </div>
