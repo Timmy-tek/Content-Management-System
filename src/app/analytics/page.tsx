@@ -87,6 +87,7 @@ export default function AnalyticsPage() {
     });
 
   const [liveInsight, setLiveInsight] = useState<PerformanceInsight | null>(null);
+  const [insightPostCount, setInsightPostCount] = useState(0);
   const [insightLoading, setInsightLoading] = useState(false);
   const [insightError, setInsightError] = useState<string | null>(null);
 
@@ -110,7 +111,9 @@ export default function AnalyticsPage() {
             setInsightError(data.error);
             setLiveInsight(null);
           } else {
-            setLiveInsight(data);
+            const { currentPostCount, ...insight } = data;
+            setLiveInsight(insight);
+            setInsightPostCount(currentPostCount);
           }
         })
         .catch(() => setInsightError('Failed to generate insight'))
@@ -261,9 +264,9 @@ export default function AnalyticsPage() {
         ) : liveInsight ? (
             <GlassPanel
                 insight={liveInsight}
-                isGated={liveInsight.currentPostCount < 5}
+                isGated={insightPostCount < 5}
                 minPostsRequired={5}
-                currentPostCount={liveInsight.currentPostCount}
+                currentPostCount={insightPostCount}
             />
         ) : null}
       </div>
