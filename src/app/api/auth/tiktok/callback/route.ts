@@ -38,6 +38,7 @@ export async function GET(req: Request) {
             connected: true,
             account_id: tokenData.open_id,
             access_token: tokenData.access_token,
+            refresh_token: tokenData.refresh_token,
             token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
         },
         { onConflict: 'platform' }
