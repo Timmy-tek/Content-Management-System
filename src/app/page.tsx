@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp,
@@ -13,9 +13,13 @@ import {
   FileText,
   Radio,
   Sparkles,
+  Check,
+  Clock,
+  Zap,
 } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import { initialPosts as mockFallbackPosts } from '@/lib/mockData';
+import { supabase } from '@/lib/supabase';
 
 export default function DashboardPage() {
   const { posts: contextPosts } = useApp();
@@ -23,13 +27,23 @@ export default function DashboardPage() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
 
+  useEffect(() => {
+    async function checkConnection() {
+      const { data, error } = await supabase.from('posts').select('*');
+      console.log('Supabase Data:', data);
+      console.log('Supabase Error:', error);
+    }
+    checkConnection();
+  }, []);
+
   // Use AppContext posts if populated; fallback to mock data if empty
   const activePostsList = contextPosts.length > 0 ? contextPosts : mockFallbackPosts;
 
   // Filter posts based on search query
-  const filteredPosts = activePostsList.filter((post) =>
-    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    post.sourceContent.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredPosts = activePostsList.filter(
+    (post) =>
+      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.sourceContent.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // Status style helper
@@ -62,79 +76,105 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="space-y-6 pb-12 font-inter text-[#111111]">
+    <div className="space-y-8 pb-12 font-inter text-[#111111]">
       {/* =========================================================================
-          HERO METRIC BANNER (RonDesignLab Style)
+          HERO SECTION (Un-carded, directly on gradient background — RonDesignLab style)
           ========================================================================= */}
-      <div className="bg-[#EAE8E1]/80 rounded-[32px] p-6 sm:p-8 border border-black/5 shadow-sm space-y-6">
+      <div className="pt-2 pb-4 space-y-6">
+        {/* Top Header Row: Icon + Large Numeric Metric + Right Meta Items */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          {/* Main Reach Metric */}
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center text-[#111111] shadow-sm border border-black/5 mt-1">
-              <FileText className="w-6 h-6" />
+          {/* Left: File Icon + Oversized Metric */}
+          <div className="flex items-center gap-5">
+            <div className="w-14 h-14 rounded-full bg-white/80 backdrop-blur-md border border-black/10 flex items-center justify-center text-[#111111] shadow-sm shrink-0">
+              <FileText className="w-7 h-7" />
             </div>
             <div>
-              <span className="text-xs font-bold uppercase tracking-wider text-[#666666] font-space block mb-1">
+              <span className="text-xs font-bold uppercase tracking-wider text-[#666666] font-space block mb-0.5">
                 Total Multi-Channel Audience Reach
               </span>
               <div className="flex items-baseline gap-3">
-                <span className="text-4xl sm:text-5xl font-black font-space tracking-tight text-[#111111] tabular-nums">
+                <span className="text-5xl sm:text-6xl font-black font-space tracking-tight text-[#111111] tabular-nums">
                   294,100
                 </span>
-                <span className="inline-flex items-center gap-1 bg-[#D2F3D0] text-[#0E520A] text-xs font-bold px-2.5 py-1 rounded-full font-space">
+                <span className="inline-flex items-center gap-1 text-xs font-bold text-[#0E520A] bg-[#D2F3D0] px-2.5 py-1 rounded-full font-space">
                   <TrendingUp className="w-3.5 h-3.5" /> +28.9%
                 </span>
               </div>
             </div>
           </div>
 
-          {/* Account Meta Badges */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 text-xs font-medium text-[#444444] shadow-sm">
-              Account <strong className="text-[#111111] font-semibold">Content Engine Lab</strong>
+          {/* Right: Meta Items (Account, Pipeline ID, Status) */}
+          <div className="flex flex-wrap items-center gap-6 text-xs text-[#555555] font-inter">
+            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-xs">
+              <span className="text-[#888888] font-space uppercase text-[10px] tracking-wider">Account</span>
+              <strong className="text-[#111111] font-bold font-space">Content Engine Lab</strong>
             </div>
-            <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 text-xs font-medium text-[#444444] shadow-sm">
-              Pipeline ID <strong className="text-[#111111] font-semibold">CE-4905</strong>
+            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-xs">
+              <span className="text-[#888888] font-space uppercase text-[10px] tracking-wider">Pipeline ID</span>
+              <strong className="text-[#111111] font-bold font-space">CE-4905</strong>
             </div>
-            <div className="bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 text-xs font-medium text-[#444444] shadow-sm flex items-center gap-2">
+            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-xs">
               <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              Status <strong className="text-[#111111] font-semibold">Multi-Channel Active</strong>
+              <span className="text-[#888888] font-space uppercase text-[10px] tracking-wider">Status</span>
+              <strong className="text-[#111111] font-bold font-space">Multi-Channel Active</strong>
             </div>
           </div>
         </div>
 
-        {/* Pipeline Progress Bar Row */}
-        <div className="pt-4 border-t border-black/10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        {/* Bottom Row: Connected Metric Pills + Striped Bar + Action Pill Button */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2">
+          {/* Option A: Colored Pipeline Status Pills (Exact RonDesignLab Track Style) */}
           <div className="flex flex-wrap items-center gap-3">
-            <div className="bg-[#B9F5B0] text-[#0A4D07] text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-space">
-              <span className="w-2 h-2 rounded-full bg-[#0A4D07]" />
-              50000 Published
+            {/* Green Pill */}
+            <div className="bg-[#86EFAC] text-[#064E3B] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xs border border-black/5">
+              <div className="w-4 h-4 rounded-full bg-[#064E3B] text-[#86EFAC] flex items-center justify-center">
+                <Check className="w-2.5 h-2.5 stroke-[3]" />
+              </div>
+              <span>50,000 Published</span>
             </div>
-            <div className="bg-[#FFEAA5] text-[#5C4200] text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-space">
-              <span className="w-2 h-2 rounded-full bg-[#5C4200]" />
-              18000 In Review
+
+            {/* Yellow Pill */}
+            <div className="bg-[#FDE047] text-[#713F12] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xs border border-black/5">
+              <div className="w-4 h-4 rounded-full bg-[#713F12] text-[#FDE047] flex items-center justify-center">
+                <Clock className="w-2.5 h-2.5 stroke-[3]" />
+              </div>
+              <span>18,000 In Review</span>
             </div>
-            <div className="bg-[#E0E0E0] text-[#333333] text-xs font-bold px-3.5 py-1.5 rounded-full flex items-center gap-1.5 font-space">
-              <span className="w-2 h-2 rounded-full bg-[#555555]" />
-              24000 AI Adapting
+
+            {/* Gray/Lavender Pill */}
+            <div className="bg-[#E2E8F0] text-[#334155] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xs border border-black/5">
+              <div className="w-4 h-4 rounded-full bg-[#334155] text-[#E2E8F0] flex items-center justify-center">
+                <Zap className="w-2.5 h-2.5 stroke-[3]" />
+              </div>
+              <span>24,000 AI Adapting</span>
             </div>
           </div>
 
-          {/* Segmented Pattern Bar & Action Button */}
+          {/* Right: Striped Pattern Sync Meter + Action Pill */}
           <div className="flex items-center gap-4">
-            <div className="hidden sm:flex items-center gap-1 bg-white/70 px-3 py-1.5 rounded-full border border-black/5">
-              <div className="w-32 h-2 rounded-full bg-gradient-to-r from-[#10B981] via-[#F59E0B] to-[#3B82F6] opacity-80" />
+            {/* Vertical Barcode/Striped Pattern Indicator */}
+            <div className="hidden sm:flex items-center gap-0.5 px-3 py-2 bg-white/40 backdrop-blur-xs rounded-2xl border border-black/5">
+              {Array.from({ length: 36 }).map((_, i) => (
+                <div
+                  key={i}
+                  className={`w-[2px] h-4 rounded-full ${
+                    i < 24 ? 'bg-[#111111]/70' : 'bg-[#111111]/20'
+                  }`}
+                />
+              ))}
             </div>
 
-            <div className="bg-white px-3.5 py-1.5 rounded-full border border-black/5 text-xs font-semibold font-space text-[#444444]">
-              Active Sync: 8 Days
+            {/* Active Sync Tag */}
+            <div className="bg-white/80 backdrop-blur-sm border border-black/10 px-4 py-2.5 rounded-2xl text-xs font-bold font-space text-[#444444] shadow-xs">
+              Active Sync: <span className="text-[#111111]">8 Days</span>
             </div>
 
+            {/* Primary Action Button (Solid Black Pill) */}
             <Link
               href="/posts/new"
-              className="bg-[#111111] hover:bg-[#222222] text-white font-space font-bold text-xs px-5 py-2.5 rounded-full shadow-md transition-all flex items-center gap-2 shrink-0"
+              className="bg-[#111111] hover:bg-[#222222] text-white font-space font-bold text-xs px-6 py-3 rounded-full shadow-md hover:shadow-lg transition-all flex items-center gap-2 shrink-0 cursor-pointer"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 text-[#E5F23A]" />
               New Adaptation
             </Link>
           </div>
@@ -153,7 +193,7 @@ export default function DashboardPage() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
             <button
               onClick={() => setActiveTab('adapted')}
-              className={`font-space font-bold text-xs px-5 py-3 rounded-t-2xl shadow-sm border-t border-x border-black/10 flex items-center gap-2 transition-all ${
+              className={`font-space font-bold text-xs px-5 py-3 rounded-t-2xl shadow-sm border-t border-x border-black/10 flex items-center gap-2 transition-all cursor-pointer ${
                 activeTab === 'adapted'
                   ? 'bg-white text-[#111111] border-b-2 border-b-white -mb-px z-10'
                   : 'bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666]'
@@ -164,7 +204,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('master')}
-              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all ${
+              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all cursor-pointer ${
                 activeTab === 'master'
                   ? 'bg-white text-[#111111] border-t border-x border-black/10 border-b-2 border-b-white -mb-px z-10 font-bold'
                   : 'bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666]'
@@ -174,7 +214,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('templates')}
-              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all ${
+              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all cursor-pointer ${
                 activeTab === 'templates'
                   ? 'bg-white text-[#111111] border-t border-x border-black/10 border-b-2 border-b-white -mb-px z-10 font-bold'
                   : 'bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666]'
@@ -184,7 +224,7 @@ export default function DashboardPage() {
             </button>
             <button
               onClick={() => setActiveTab('notes')}
-              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all ${
+              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all cursor-pointer ${
                 activeTab === 'notes'
                   ? 'bg-white text-[#111111] border-t border-x border-black/10 border-b-2 border-b-white -mb-px z-10 font-bold'
                   : 'bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666]'
@@ -224,7 +264,7 @@ export default function DashboardPage() {
                 <div className="flex items-center bg-[#F4F3EF] p-1 rounded-full border border-black/5">
                   <button
                     onClick={() => setViewMode('grid')}
-                    className={`p-1.5 rounded-full transition-all ${
+                    className={`p-1.5 rounded-full transition-all cursor-pointer ${
                       viewMode === 'grid'
                         ? 'bg-white shadow-sm text-[#111111]'
                         : 'text-[#777777] hover:text-[#111111]'
@@ -234,7 +274,7 @@ export default function DashboardPage() {
                   </button>
                   <button
                     onClick={() => setViewMode('list')}
-                    className={`p-1.5 rounded-full transition-all ${
+                    className={`p-1.5 rounded-full transition-all cursor-pointer ${
                       viewMode === 'list'
                         ? 'bg-white shadow-sm text-[#111111]'
                         : 'text-[#777777] hover:text-[#111111]'
@@ -249,10 +289,12 @@ export default function DashboardPage() {
             {/* Content Cards Grid / List */}
             {filteredPosts.length === 0 ? (
               <div className="p-8 text-center space-y-3">
-                <p className="text-xs font-semibold text-[#666666]">No posts found matching search query.</p>
+                <p className="text-xs font-semibold text-[#666666]">
+                  No posts found matching search query.
+                </p>
                 <button
                   onClick={() => setSearchQuery('')}
-                  className="text-xs font-bold text-[#111111] underline"
+                  className="text-xs font-bold text-[#111111] underline cursor-pointer"
                 >
                   Clear search
                 </button>
@@ -274,7 +316,7 @@ export default function DashboardPage() {
                         >
                           {getStatusLabel(post.status)}
                         </span>
-                        <button className="text-[#888888] hover:text-[#111111] p-1">
+                        <button className="text-[#888888] hover:text-[#111111] p-1 cursor-pointer">
                           <MoreHorizontal className="w-4 h-4" />
                         </button>
                       </div>
@@ -322,7 +364,8 @@ export default function DashboardPage() {
 
                       <div className="flex items-center gap-2">
                         <span className="text-[11px] font-semibold text-[#666666] font-space">
-                          {post.platforms.length} {post.platforms.length === 1 ? 'Platform' : 'Platforms'}
+                          {post.platforms.length}{' '}
+                          {post.platforms.length === 1 ? 'Platform' : 'Platforms'}
                         </span>
                         <Link
                           href={`/posts/${post.id}`}
@@ -349,7 +392,11 @@ export default function DashboardPage() {
                       <p className="text-[11px] text-[#666666] line-clamp-1">{post.sourceContent}</p>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
-                      <span className={`text-[10px] font-bold font-space px-2.5 py-0.5 rounded-full ${getStatusStyle(post.status)}`}>
+                      <span
+                        className={`text-[10px] font-bold font-space px-2.5 py-0.5 rounded-full ${getStatusStyle(
+                          post.status
+                        )}`}
+                      >
                         {getStatusLabel(post.status)}
                       </span>
                       <Link

@@ -10,42 +10,45 @@ import {
   BarChart3,
   Sliders,
   Layers,
-  Sun,
-  Moon,
-  Calendar
+  Sparkles,
+  ChevronRight
 } from 'lucide-react';
 
 export function SidebarNav() {
   const pathname = usePathname();
 
   const mainNav = [
-    { label: 'Dashboard', href: '/', icon: LayoutDashboard },
-    { label: 'Post Library', href: '/posts', icon: FolderKanban },
-    { label: 'New Post', href: '/posts/new', icon: PlusCircle },
-    { label: 'Scheduler', href: '/posts', icon: Calendar },
-    { label: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { label: 'Connected Accounts', href: '/settings/accounts', icon: Layers },
-    { label: 'Settings', href: '/settings', icon: Sliders },
+    { label: 'Dashboard', href: '/', icon: LayoutDashboard, desc: 'Overview & metrics' },
+    { label: 'Post Library', href: '/posts', icon: FolderKanban, desc: 'All social content' },
+    { label: 'New Post', href: '/posts/new', icon: PlusCircle, desc: 'Create & AI adapt' },
+    { label: 'Analytics', href: '/analytics', icon: BarChart3, desc: 'Performance Insights' },
+    { label: 'Connected Accounts', href: '/settings/accounts', icon: Layers, desc: 'Channels & tokens' },
+    { label: 'Settings', href: '/settings', icon: Sliders, desc: 'Voice & API keys' },
   ];
 
   return (
-    <aside className="group/sidebar fixed left-3 top-[72px] bottom-3 z-30 hidden sm:flex flex-col justify-between items-center py-4 px-2 w-16 md:w-20 hover:w-56 bg-[#F0EEE6] rounded-[28px] border border-[#E2DFD5] shadow-md transition-all duration-300 ease-in-out pointer-events-auto overflow-hidden">
-      {/* Top Stack: Brand Logo & Navigation Circles */}
-      <div className="flex flex-col items-center gap-3 w-full">
-        {/* Top Circular Brand Logo */}
+    <aside className="group/sidebar fixed left-4 top-4 bottom-4 z-50 hidden sm:flex flex-col justify-between bg-[#0E0E10] text-white rounded-3xl p-3 border border-white/10 shadow-2xl w-16 md:w-20 hover:w-64 transition-all duration-300 ease-in-out pointer-events-auto overflow-hidden">
+      {/* Top Brand Logo */}
+      <div className="flex flex-col gap-6 w-full pt-2">
         <Link
           href="/"
-          className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-[#111111] text-[#E5F23A] flex items-center justify-center font-bold font-display text-sm shadow-sm hover:scale-105 transition-transform shrink-0"
+          className="flex items-center gap-3 px-1.5 focus:outline-none"
           title="Content Engine"
         >
-          CE
+          <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-2xl bg-[#E5F23A] text-[#111111] flex items-center justify-center font-bold font-space text-lg shadow-md hover:scale-105 transition-transform">
+            CE
+          </div>
+          <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
+            <span className="font-space font-bold text-base text-white tracking-tight block">Content Engine</span>
+            <span className="text-[10px] text-white/50 block -mt-1 font-sans">Multi-channel AI Studio</span>
+          </div>
         </Link>
 
         {/* Divider */}
-        <div className="w-8 h-px bg-[#DCD8CC] my-1" />
+        <div className="w-full h-px bg-white/10" />
 
-        {/* Vertical Navigation Circles */}
-        <nav className="flex flex-col gap-2.5 w-full items-center">
+        {/* Vertical Navigation Items */}
+        <nav className="flex flex-col gap-2 w-full">
           {mainNav.map((item) => {
             const Icon = item.icon;
             const isActive = item.href === '/'
@@ -56,51 +59,50 @@ export function SidebarNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex items-center gap-3 px-2 py-2 rounded-full w-full transition-all duration-200 overflow-hidden ${
+                className={`relative flex items-center gap-3 px-2 py-2 md:py-2.5 rounded-2xl transition-all duration-200 overflow-hidden ${
                   isActive
-                    ? 'bg-[#111111] text-white shadow-md'
-                    : 'bg-white text-[#444444] border border-[#E2DFD5] hover:border-[#111111] hover:text-[#111111] shadow-sm'
+                    ? 'bg-[#E5F23A] text-[#111111] font-bold shadow-lg shadow-[#E5F23A]/10'
+                    : 'text-white/70 hover:text-white hover:bg-white/10'
                 }`}
-                title={item.label}
               >
                 {/* Icon Container */}
-                <div className={`w-8 h-8 md:w-9 md:h-9 shrink-0 flex items-center justify-center rounded-full ${
-                  isActive ? 'bg-[#111111] text-[#E5F23A]' : 'bg-transparent text-[#444444]'
-                }`}>
-                  <Icon className="w-4 h-4 md:w-5 md:h-5" />
+                <div className="w-8 h-8 md:w-9 md:h-9 shrink-0 flex items-center justify-center rounded-xl">
+                  <Icon className={`w-5 h-5 md:w-6 md:h-6 ${isActive ? 'text-[#111111]' : 'text-white/80'}`} />
                 </div>
 
-                {/* Text Label (Visible on Sidebar Hover) */}
-                <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden flex-1 pr-2">
-                  <span className={`text-xs font-bold leading-tight ${isActive ? 'text-white' : 'text-[#111111]'}`}>
+                {/* Text Content (visible on sidebar hover) */}
+                <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden flex-1 min-w-0 pr-1">
+                  <div className={`text-sm font-medium leading-tight truncate ${isActive ? 'text-[#111111] font-bold' : 'text-white'}`}>
                     {item.label}
-                  </span>
+                  </div>
+                  <div className={`text-[11px] truncate ${isActive ? 'text-[#111111]/70' : 'text-white/50'}`}>
+                    {item.desc}
+                  </div>
                 </div>
+
+                {/* Active Indicator Dot / Arrow */}
+                {isActive && (
+                  <div className="absolute left-0 top-2 bottom-2 w-1 bg-[#E5F23A] rounded-r-full group-hover/sidebar:hidden" />
+                )}
+                {isActive && (
+                  <ChevronRight className="w-4 h-4 text-[#111111] shrink-0 hidden group-hover/sidebar:block" />
+                )}
               </Link>
             );
           })}
         </nav>
       </div>
 
-      {/* Bottom Controls: Sun/Moon Theme Mode Switchers */}
-      <div className="flex flex-col items-center gap-2 w-full pt-2">
-        <div className="w-8 h-px bg-[#DCD8CC] my-1" />
-
-        <div className="flex flex-col gap-2 items-center w-full">
-          <button
-            type="button"
-            className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-white border border-[#E2DFD5] text-[#444444] flex items-center justify-center hover:bg-[#F7F5EF] shadow-sm transition-transform hover:scale-105"
-            title="Light Mode"
-          >
-            <Moon className="w-4 h-4" />
-          </button>
-          <button
-            type="button"
-            className="w-10 h-10 md:w-11 md:h-11 rounded-full bg-[#111111] text-[#E5F23A] flex items-center justify-center shadow-md transition-transform hover:scale-105"
-            title="Active Mode"
-          >
-            <Sun className="w-4 h-4" />
-          </button>
+      {/* Bottom AI Status Badge */}
+      <div className="flex flex-col w-full pb-2">
+        <div className="w-full rounded-2xl bg-white/5 border border-white/10 p-2 flex items-center gap-3 hover:bg-white/10 transition-colors cursor-pointer overflow-hidden">
+          <div className="w-8 h-8 md:w-9 md:h-9 shrink-0 rounded-xl bg-[#E5F23A]/10 flex items-center justify-center text-[#E5F23A]">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
+            <div className="text-xs font-semibold text-white">Engine AI Active</div>
+            <div className="text-[10px] text-white/50">Models ready</div>
+          </div>
         </div>
       </div>
     </aside>
