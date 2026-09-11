@@ -61,6 +61,14 @@ export const initialApiSettings: ApiSettings = {
   tiktokClientSecret: 'tt_sec_6677889900',
 };
 
+export function getMockPosts(): Post[] {
+  return initialPosts;
+}
+
+export function getMockConnections(): PlatformConnection[] {
+  return initialConnections;
+}
+
 export const initialPosts: Post[] = [
   {
     id: 'post-101',

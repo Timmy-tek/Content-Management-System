@@ -22,7 +22,7 @@ export function SidebarNav() {
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
     { label: 'Post Library', href: '/posts', icon: FolderKanban },
     { label: 'New Post', href: '/posts/new', icon: PlusCircle },
-    { label: 'Scheduler', href: '/posts/scheduler', icon: Calendar },
+    { label: 'Scheduler', href: '/posts', icon: Calendar },
     { label: 'Analytics', href: '/analytics', icon: BarChart3 },
     { label: 'Connected Accounts', href: '/settings/accounts', icon: Layers },
     { label: 'Settings', href: '/settings', icon: Sliders },

@@ -26,7 +26,7 @@ export function HeaderToolbar() {
     { label: 'Dashboard', href: '/', icon: LayoutDashboard },
     { label: 'Master Library', href: '/posts', icon: FolderKanban },
     { label: 'Adapt Studio', href: '/posts/new', icon: PlusCircle },
-    { label: 'Scheduler', href: '/posts/scheduler', icon: Calendar },
+    { label: 'Scheduler', href: '/posts', icon: Calendar },
     { label: 'Analytics', href: '/analytics', icon: BarChart3 },
     { label: 'Accounts', href: '/settings/accounts', icon: Layers },
   ];

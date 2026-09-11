@@ -1,4 +1,6 @@
-import React from 'react';
+'use client';
+
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp,
@@ -12,66 +14,52 @@ import {
   Radio,
   Sparkles,
 } from 'lucide-react';
-import { getMockPosts, getMockConnections } from '@/lib/mock-data';
+import { useApp } from '@/context/AppContext';
+import { initialPosts as mockFallbackPosts } from '@/lib/mockData';
 
-export const revalidate = 0;
+export default function DashboardPage() {
+  const { posts: contextPosts } = useApp();
+  const [activeTab, setActiveTab] = useState<'adapted' | 'master' | 'templates' | 'notes'>('adapted');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [searchQuery, setSearchQuery] = useState('');
 
-export default async function DashboardPage() {
-  const posts = getMockPosts();
-  const connections = getMockConnections();
+  // Use AppContext posts if populated; fallback to mock data if empty
+  const activePostsList = contextPosts.length > 0 ? contextPosts : mockFallbackPosts;
 
-  const initialPosts = [
-    {
-      id: 'post-1',
-      title: 'How Generative AI Changes Social Media Strategy in 2025',
-      content:
-        'Generative AI is shifting social media strategy from manual distribution to hyper-contextual platform adaptations...',
-      status: 'Published',
-      statusBg: 'bg-[#D2F3D0] text-[#0E520A]',
-      platforms: ['instagram', 'linkedin', 'tiktok', 'facebook'],
-      platformCount: '4 Platforms',
-    },
-    {
-      id: 'post-2',
-      title: 'Scaling Engineering Culture in Remote-First Companies',
-      content:
-        'Building a strong engineering culture without a physical office requires deliberate asynchronous communication and structured RFCs...',
-      status: 'Published',
-      statusBg: 'bg-[#D2F3D0] text-[#0E520A]',
-      platforms: ['linkedin', 'instagram'],
-      platformCount: '2 Platforms',
-    },
-    {
-      id: 'post-3',
-      title: 'The Design System Playbook: From Figma Tokens to Tailwind UI',
-      content:
-        'Connecting design tokens in Figma directly to Tailwind CSS configuration automates UI updates across web and mobile platforms...',
-      status: 'Scheduled',
-      statusBg: 'bg-[#FFE8B3] text-[#6B4B00]',
-      platforms: ['instagram', 'linkedin', 'tiktok'],
-      platformCount: '3 Platforms',
-    },
-    {
-      id: 'post-4',
-      title: 'Why Next.js 14 App Router + Server Actions are Revolutionizing Fullstack',
-      content:
-        'Server Actions bring RPC-like simplicity back to web applications. By running server code directly from component actions, network boilerplate is eliminated...',
-      status: 'Pending Review',
-      statusBg: 'bg-[#FFE2C7] text-[#7A3500]',
-      platforms: ['linkedin', 'instagram', 'tiktok', 'facebook'],
-      platformCount: '4 Platforms',
-    },
-    {
-      id: 'post-5',
-      title: 'Building AI Agent Frameworks with Zero Latency Overhead',
-      content:
-        'LLM latency is the bottleneck of modern AI agent UX. By implementing streaming response pipelines and optimistic UI, perceived speed increases 5x...',
-      status: 'Draft',
-      statusBg: 'bg-[#E5E5E5] text-[#444444]',
-      platforms: ['linkedin', 'instagram'],
-      platformCount: '2 Platforms',
-    },
-  ];
+  // Filter posts based on search query
+  const filteredPosts = activePostsList.filter((post) =>
+    post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    post.sourceContent.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Status style helper
+  const getStatusStyle = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'published':
+        return 'bg-[#D2F3D0] text-[#0E520A]';
+      case 'scheduled':
+        return 'bg-[#FFE8B3] text-[#6B4B00]';
+      case 'review':
+      case 'pending review':
+        return 'bg-[#FFE2C7] text-[#7A3500]';
+      default:
+        return 'bg-[#E5E5E5] text-[#444444]';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'published':
+        return 'Published';
+      case 'scheduled':
+        return 'Scheduled';
+      case 'review':
+      case 'pending review':
+        return 'Pending Review';
+      default:
+        return 'Draft';
+    }
+  };
 
   return (
     <div className="space-y-6 pb-12 font-inter text-[#111111]">
@@ -158,22 +146,50 @@ export default async function DashboardPage() {
           ========================================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* -----------------------------------------------------------------------
-            LEFT PANEL: Folder Tab Content Grid (7/12 cols or 8/12 cols)
+            LEFT PANEL: Folder Tab Content Grid
             ----------------------------------------------------------------------- */}
         <div className="lg:col-span-7 xl:col-span-8 space-y-4">
           {/* Protruding Folder Tabs */}
           <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-            <button className="bg-white text-[#111111] font-space font-bold text-xs px-5 py-3 rounded-t-2xl shadow-sm border-t border-x border-black/10 flex items-center gap-2 border-b-2 border-b-white -mb-px z-10">
+            <button
+              onClick={() => setActiveTab('adapted')}
+              className={`font-space font-bold text-xs px-5 py-3 rounded-t-2xl shadow-sm border-t border-x border-black/10 flex items-center gap-2 transition-all ${
+                activeTab === 'adapted'
+                  ? 'bg-white text-[#111111] border-b-2 border-b-white -mb-px z-10'
+                  : 'bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666]'
+              }`}
+            >
               <Sparkles className="w-3.5 h-3.5 text-[#10B981]" />
               Adapted Lines
             </button>
-            <button className="bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666] font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all">
+            <button
+              onClick={() => setActiveTab('master')}
+              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all ${
+                activeTab === 'master'
+                  ? 'bg-white text-[#111111] border-t border-x border-black/10 border-b-2 border-b-white -mb-px z-10 font-bold'
+                  : 'bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666]'
+              }`}
+            >
               Master Docs
             </button>
-            <button className="bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666] font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all">
+            <button
+              onClick={() => setActiveTab('templates')}
+              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all ${
+                activeTab === 'templates'
+                  ? 'bg-white text-[#111111] border-t border-x border-black/10 border-b-2 border-b-white -mb-px z-10 font-bold'
+                  : 'bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666]'
+              }`}
+            >
               Templates
             </button>
-            <button className="bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666] font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all">
+            <button
+              onClick={() => setActiveTab('notes')}
+              className={`font-space font-semibold text-xs px-5 py-3 rounded-t-2xl transition-all ${
+                activeTab === 'notes'
+                  ? 'bg-white text-[#111111] border-t border-x border-black/10 border-b-2 border-b-white -mb-px z-10 font-bold'
+                  : 'bg-[#E2E0D8]/60 hover:bg-[#E2E0D8] text-[#666666]'
+              }`}
+            >
               Notes
             </button>
           </div>
@@ -183,7 +199,9 @@ export default async function DashboardPage() {
             {/* Folder Header Controls */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div className="flex items-center gap-2">
-                <span className="text-lg font-black font-space text-[#111111]">5</span>
+                <span className="text-lg font-black font-space text-[#111111]">
+                  {filteredPosts.length}
+                </span>
                 <span className="text-xs font-semibold text-[#666666] font-space uppercase tracking-wider">
                   Items in Pipeline
                 </span>
@@ -196,99 +214,160 @@ export default async function DashboardPage() {
                   <input
                     type="text"
                     placeholder="Search posts..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full bg-[#F4F3EF] text-xs font-inter rounded-full pl-9 pr-4 py-2 border border-black/5 focus:outline-none focus:ring-1 focus:ring-black/20"
                   />
                 </div>
 
                 {/* Grid / List Switcher */}
                 <div className="flex items-center bg-[#F4F3EF] p-1 rounded-full border border-black/5">
-                  <button className="p-1.5 rounded-full bg-white shadow-sm text-[#111111]">
+                  <button
+                    onClick={() => setViewMode('grid')}
+                    className={`p-1.5 rounded-full transition-all ${
+                      viewMode === 'grid'
+                        ? 'bg-white shadow-sm text-[#111111]'
+                        : 'text-[#777777] hover:text-[#111111]'
+                    }`}
+                  >
                     <Grid className="w-3.5 h-3.5" />
                   </button>
-                  <button className="p-1.5 rounded-full text-[#777777] hover:text-[#111111]">
+                  <button
+                    onClick={() => setViewMode('list')}
+                    className={`p-1.5 rounded-full transition-all ${
+                      viewMode === 'list'
+                        ? 'bg-white shadow-sm text-[#111111]'
+                        : 'text-[#777777] hover:text-[#111111]'
+                    }`}
+                  >
                     <List className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Content Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {initialPosts.map((post) => (
-                <div
-                  key={post.id}
-                  className="bg-[#F8F7F3] rounded-[24px] p-5 border border-black/5 hover:border-black/15 hover:shadow-md transition-all flex flex-col justify-between group space-y-4"
+            {/* Content Cards Grid / List */}
+            {filteredPosts.length === 0 ? (
+              <div className="p-8 text-center space-y-3">
+                <p className="text-xs font-semibold text-[#666666]">No posts found matching search query.</p>
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="text-xs font-bold text-[#111111] underline"
                 >
-                  <div className="space-y-3">
-                    {/* Card Top Row */}
-                    <div className="flex items-center justify-between">
-                      <span
-                        className={`text-[11px] font-bold font-space px-3 py-1 rounded-full ${post.statusBg}`}
-                      >
-                        {post.status}
-                      </span>
-                      <button className="text-[#888888] hover:text-[#111111] p-1">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
+                  Clear search
+                </button>
+              </div>
+            ) : viewMode === 'grid' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {filteredPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="bg-[#F8F7F3] rounded-[24px] p-5 border border-black/5 hover:border-black/15 hover:shadow-md transition-all flex flex-col justify-between group space-y-4"
+                  >
+                    <div className="space-y-3">
+                      {/* Card Top Row */}
+                      <div className="flex items-center justify-between">
+                        <span
+                          className={`text-[11px] font-bold font-space px-3 py-1 rounded-full ${getStatusStyle(
+                            post.status
+                          )}`}
+                        >
+                          {getStatusLabel(post.status)}
+                        </span>
+                        <button className="text-[#888888] hover:text-[#111111] p-1">
+                          <MoreHorizontal className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Post Title */}
+                      <Link href={`/posts/${post.id}`}>
+                        <h3 className="text-sm font-bold font-space text-[#111111] group-hover:text-[#2563EB] transition-colors leading-snug line-clamp-2">
+                          {post.title}
+                        </h3>
+                      </Link>
+
+                      {/* Excerpt Preview */}
+                      <p className="text-xs text-[#555555] font-inter line-clamp-3 leading-relaxed">
+                        {post.sourceContent}
+                      </p>
                     </div>
 
-                    {/* Post Title */}
-                    <Link href={`/posts/${post.id}`}>
-                      <h3 className="text-sm font-bold font-space text-[#111111] group-hover:text-[#2563EB] transition-colors leading-snug line-clamp-2">
-                        {post.title}
-                      </h3>
-                    </Link>
+                    {/* Card Bottom Row */}
+                    <div className="pt-3 border-t border-black/5 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {/* Platform Icons */}
+                        <div className="flex items-center -space-x-1">
+                          {post.platforms.includes('instagram') && (
+                            <span className="w-5 h-5 rounded-full bg-[#E4405F] text-white flex items-center justify-center text-[9px] font-bold">
+                              IG
+                            </span>
+                          )}
+                          {post.platforms.includes('linkedin') && (
+                            <span className="w-5 h-5 rounded-full bg-[#0A66C2] text-white flex items-center justify-center text-[9px] font-bold">
+                              LI
+                            </span>
+                          )}
+                          {post.platforms.includes('tiktok') && (
+                            <span className="w-5 h-5 rounded-full bg-[#000000] text-white flex items-center justify-center text-[9px] font-bold">
+                              TT
+                            </span>
+                          )}
+                          {post.platforms.includes('facebook') && (
+                            <span className="w-5 h-5 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-[9px] font-bold">
+                              FB
+                            </span>
+                          )}
+                        </div>
+                      </div>
 
-                    {/* Excerpt Preview */}
-                    <p className="text-xs text-[#555555] font-inter line-clamp-3 leading-relaxed">
-                      {post.content}
-                    </p>
-                  </div>
-
-                  {/* Card Bottom Row */}
-                  <div className="pt-3 border-t border-black/5 flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {/* Platform Icons */}
-                      <div className="flex items-center -space-x-1">
-                        <span className="w-5 h-5 rounded-full bg-[#E4405F] text-white flex items-center justify-center text-[9px] font-bold">
-                          IG
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-semibold text-[#666666] font-space">
+                          {post.platforms.length} {post.platforms.length === 1 ? 'Platform' : 'Platforms'}
                         </span>
-                        <span className="w-5 h-5 rounded-full bg-[#0A66C2] text-white flex items-center justify-center text-[9px] font-bold">
-                          LI
-                        </span>
-                        {post.platforms.includes('tiktok') && (
-                          <span className="w-5 h-5 rounded-full bg-[#000000] text-white flex items-center justify-center text-[9px] font-bold">
-                            TT
-                          </span>
-                        )}
-                        {post.platforms.includes('facebook') && (
-                          <span className="w-5 h-5 rounded-full bg-[#1877F2] text-white flex items-center justify-center text-[9px] font-bold">
-                            FB
-                          </span>
-                        )}
+                        <Link
+                          href={`/posts/${post.id}`}
+                          className="w-7 h-7 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#111111] hover:bg-[#111111] hover:text-white transition-colors"
+                        >
+                          <ArrowUpRight className="w-3.5 h-3.5" />
+                        </Link>
                       </div>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-semibold text-[#666666] font-space">
-                        {post.platformCount}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="divide-y divide-black/5 border border-black/5 rounded-2xl overflow-hidden">
+                {filteredPosts.map((post) => (
+                  <div
+                    key={post.id}
+                    className="p-4 bg-[#F8F7F3] hover:bg-white flex items-center justify-between gap-4 transition-colors"
+                  >
+                    <div className="space-y-1 max-w-md">
+                      <Link href={`/posts/${post.id}`} className="font-bold text-xs font-space hover:underline">
+                        {post.title}
+                      </Link>
+                      <p className="text-[11px] text-[#666666] line-clamp-1">{post.sourceContent}</p>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className={`text-[10px] font-bold font-space px-2.5 py-0.5 rounded-full ${getStatusStyle(post.status)}`}>
+                        {getStatusLabel(post.status)}
                       </span>
                       <Link
                         href={`/posts/${post.id}`}
-                        className="w-7 h-7 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#111111] hover:bg-[#111111] hover:text-white transition-colors"
+                        className="w-6 h-6 rounded-full bg-white border border-black/10 flex items-center justify-center text-[#111111] hover:bg-[#111111] hover:text-white transition-colors"
                       >
-                        <ArrowUpRight className="w-3.5 h-3.5" />
+                        <ArrowUpRight className="w-3 h-3" />
                       </Link>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
         {/* -----------------------------------------------------------------------
-            RIGHT PANEL: Activity & Schedule Stack (5/12 cols or 4/12 cols)
+            RIGHT PANEL: Activity & Schedule Stack
             ----------------------------------------------------------------------- */}
         <div className="lg:col-span-5 xl:col-span-4 space-y-4">
           {/* Protruding Tab Header */}
@@ -306,22 +385,34 @@ export default async function DashboardPage() {
           <div className="bg-white rounded-b-3xl rounded-tr-3xl p-6 shadow-sm border border-black/10 space-y-5">
             {/* Quick Action Shortcuts */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
-              <button className="bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#111111] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 font-space transition-colors">
+              <Link
+                href="/posts/new"
+                className="bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#111111] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 font-space transition-colors"
+              >
                 <span className="w-2 h-2 rounded-full bg-[#E4405F]" />
                 + IG
-              </button>
-              <button className="bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#111111] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 font-space transition-colors">
+              </Link>
+              <Link
+                href="/posts/new"
+                className="bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#111111] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 font-space transition-colors"
+              >
                 <span className="w-2 h-2 rounded-full bg-[#0A66C2]" />
                 + LI
-              </button>
-              <button className="bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#111111] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 font-space transition-colors">
+              </Link>
+              <Link
+                href="/posts/new"
+                className="bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#111111] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 font-space transition-colors"
+              >
                 <span className="w-2 h-2 rounded-full bg-[#000000]" />
                 + TT
-              </button>
-              <button className="bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#111111] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 font-space transition-colors">
+              </Link>
+              <Link
+                href="/posts/new"
+                className="bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#111111] text-xs font-semibold px-3 py-1.5 rounded-full flex items-center gap-1 font-space transition-colors"
+              >
                 <span className="w-2 h-2 rounded-full bg-[#1877F2]" />
                 + FB
-              </button>
+              </Link>
             </div>
 
             <div className="space-y-1">
