@@ -27,27 +27,27 @@ export function SidebarNav() {
   ];
 
   return (
-    <aside className="group/sidebar fixed left-4 top-4 bottom-4 z-50 hidden sm:flex flex-col justify-between bg-[#0E0E10] text-white rounded-3xl p-3 border border-white/10 shadow-2xl w-16 md:w-20 hover:w-64 transition-all duration-300 ease-in-out pointer-events-auto overflow-hidden">
-      {/* Top Brand Logo */}
-      <div className="flex flex-col gap-6 w-full pt-2">
+    <aside className="group/sidebar fixed left-4 top-4 bottom-4 z-50 hidden sm:flex flex-col justify-between bg-white text-gray-900 rounded-full p-3 border border-gray-200/80 shadow-lg w-16 md:w-20 hover:w-64 transition-all duration-300 ease-in-out pointer-events-auto overflow-hidden">
+      {/* Top Brand Logo & Nav List */}
+      <div className="flex flex-col gap-5 w-full pt-2">
         <Link
           href="/"
           className="flex items-center gap-3 px-1.5 focus:outline-none"
           title="Content Engine"
         >
-          <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-2xl bg-[#E5F23A] text-[#111111] flex items-center justify-center font-bold font-space text-lg shadow-md hover:scale-105 transition-transform">
+          <div className="w-10 h-10 md:w-12 md:h-12 shrink-0 rounded-full bg-[#111827] text-white flex items-center justify-center font-bold font-space text-base shadow-sm hover:scale-105 transition-transform">
             CE
           </div>
           <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-            <span className="font-space font-bold text-base text-white tracking-tight block">Content Engine</span>
-            <span className="text-[10px] text-white/50 block -mt-1 font-sans">Multi-channel AI Studio</span>
+            <span className="font-space font-bold text-base text-gray-900 tracking-tight block">Content Engine</span>
+            <span className="text-[10px] text-gray-500 block -mt-1 font-sans">Multi-channel AI Studio</span>
           </div>
         </Link>
 
         {/* Divider */}
-        <div className="w-full h-px bg-white/10" />
+        <div className="w-full h-px bg-gray-200" />
 
-        {/* Vertical Navigation Items */}
+        {/* Vertical Navigation Items (Pill shaped active state) */}
         <nav className="flex flex-col gap-2 w-full">
           {mainNav.map((item) => {
             const Icon = item.icon;
@@ -59,33 +59,29 @@ export function SidebarNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex items-center gap-3 px-2 py-2 md:py-2.5 rounded-2xl transition-all duration-200 overflow-hidden ${
+                className={`relative flex items-center gap-3 px-2 py-2 md:py-2.5 rounded-full transition-all duration-200 overflow-hidden ${
                   isActive
-                    ? 'bg-[#E5F23A] text-[#111111] font-bold shadow-lg shadow-[#E5F23A]/10'
-                    : 'text-white/70 hover:text-white hover:bg-white/10'
+                    ? 'bg-gray-100 text-gray-900 font-bold border border-gray-200/80 shadow-sm'
+                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                 }`}
               >
-                {/* Icon Container */}
-                <div className="w-8 h-8 md:w-9 md:h-9 shrink-0 flex items-center justify-center rounded-xl">
-                  <Icon className={`w-5 h-5 md:w-6 md:h-6 ${isActive ? 'text-[#111111]' : 'text-white/80'}`} />
+                {/* Icon Container Capsule */}
+                <div className={`w-8 h-8 md:w-9 md:h-9 shrink-0 flex items-center justify-center rounded-full ${isActive ? 'bg-white shadow-xs text-gray-900' : 'text-gray-500'}`}>
+                  <Icon className="w-5 h-5 md:w-5 md:h-5" />
                 </div>
 
-                {/* Text Content (visible on sidebar hover) */}
+                {/* Text Content (visible on hover) */}
                 <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden flex-1 min-w-0 pr-1">
-                  <div className={`text-sm font-medium leading-tight truncate ${isActive ? 'text-[#111111] font-bold' : 'text-white'}`}>
+                  <div className={`text-xs font-semibold leading-tight truncate ${isActive ? 'text-gray-900 font-bold' : 'text-gray-700'}`}>
                     {item.label}
                   </div>
-                  <div className={`text-[11px] truncate ${isActive ? 'text-[#111111]/70' : 'text-white/50'}`}>
+                  <div className="text-[10px] text-gray-400 truncate">
                     {item.desc}
                   </div>
                 </div>
 
-                {/* Active Indicator Dot / Arrow */}
                 {isActive && (
-                  <div className="absolute left-0 top-2 bottom-2 w-1 bg-[#E5F23A] rounded-r-full group-hover/sidebar:hidden" />
-                )}
-                {isActive && (
-                  <ChevronRight className="w-4 h-4 text-[#111111] shrink-0 hidden group-hover/sidebar:block" />
+                  <ChevronRight className="w-4 h-4 text-gray-800 shrink-0 hidden group-hover/sidebar:block" />
                 )}
               </Link>
             );
@@ -95,13 +91,13 @@ export function SidebarNav() {
 
       {/* Bottom AI Status Badge */}
       <div className="flex flex-col w-full pb-2">
-        <div className="w-full rounded-2xl bg-white/5 border border-white/10 p-2 flex items-center gap-3 hover:bg-white/10 transition-colors cursor-pointer overflow-hidden">
-          <div className="w-8 h-8 md:w-9 md:h-9 shrink-0 rounded-xl bg-[#E5F23A]/10 flex items-center justify-center text-[#E5F23A]">
-            <Sparkles className="w-5 h-5" />
+        <div className="w-full rounded-full bg-gray-50 border border-gray-200 p-2 flex items-center gap-3 hover:bg-gray-100 transition-colors cursor-pointer overflow-hidden">
+          <div className="w-8 h-8 md:w-9 md:h-9 shrink-0 rounded-full bg-gray-900 flex items-center justify-center text-white">
+            <Sparkles className="w-4 h-4" />
           </div>
           <div className="opacity-0 group-hover/sidebar:opacity-100 transition-opacity duration-300 whitespace-nowrap overflow-hidden">
-            <div className="text-xs font-semibold text-white">Engine AI Active</div>
-            <div className="text-[10px] text-white/50">Models ready</div>
+            <div className="text-xs font-semibold text-gray-900">Engine AI Active</div>
+            <div className="text-[10px] text-gray-500">Models ready</div>
           </div>
         </div>
       </div>
