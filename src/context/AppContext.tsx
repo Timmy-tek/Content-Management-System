@@ -194,10 +194,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                         };
                     }
 
+                    const expiresAt = dbConn.token_expires_at ? new Date(dbConn.token_expires_at) : null;
+                    const daysUntilExpiry = expiresAt ? (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24) : null;
+
                     return {
                         ...mockConn,
                         connected: dbConn.connected,
-                        status: dbConn.connected ? 'connected' : 'disconnected',
+                        status: !dbConn.connected
+                            ? 'disconnected'
+                            : daysUntilExpiry !== null && daysUntilExpiry < 5
+                                ? 'expiring'
+                                : 'connected',
                         accountId: dbConn.account_id ?? undefined,
                         accessToken: dbConn.access_token ?? undefined,
                         tokenExpiresAt: dbConn.token_expires_at

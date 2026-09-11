@@ -161,6 +161,14 @@ export default function ConnectedAccountsPage() {
                       <span>Disconnect</span>
                     </button>
                   </>
+                ) : conn.platform === 'facebook' ? (
+                    <a
+                        href="/api/auth/facebook/start"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-[#111111] text-white hover:bg-[#222222] font-bold text-xs px-6 py-2.5 rounded-full font-space transition-all cursor-pointer shadow-md"
+                        >
+                        <Link2 className="w-4 h-4 text-[#E5F23A]" />
+                  <span>Connect with Facebook</span>
+                  </a>
                 ) : conn.platform === 'linkedin' ? (
                   <a
                     href="/api/auth/linkedin/start"

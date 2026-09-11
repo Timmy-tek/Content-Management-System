@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { refreshInstagramToken, refreshTikTokToken } from '@/lib/token-refresh'
+import { refreshInstagramToken, refreshTikTokToken, refreshFacebookToken } from '@/lib/token-refresh'
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
@@ -26,6 +26,15 @@ export async function GET(req: Request) {
             results.push(await refreshTikTokToken(tiktok.refresh_token))
         } catch (err) {
             results.push({ platform: 'tiktok', success: false, error: err instanceof Error ? err.message : 'Refresh failed' })
+        }
+    }
+
+    const facebook = connections?.find((c) => c.platform === 'facebook' && c.connected)
+    if (facebook?.fb_user_token) {
+        try {
+            results.push(await refreshFacebookToken(facebook.fb_user_token))
+        } catch (err) {
+            results.push({ platform: 'facebook', success: false, error: err instanceof Error ? err.message : 'Refresh failed' })
         }
     }
 
