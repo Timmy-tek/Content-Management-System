@@ -39,6 +39,12 @@ export default function DashboardPage() {
   // Use AppContext posts if populated; fallback to mock data if empty
   const activePostsList = contextPosts.length > 0 ? contextPosts : mockFallbackPosts;
 
+  // Monthly Calendar Progress Meter Calculation
+  const now = new Date();
+  const currentDay = now.getDate();
+  const currentMonthName = now.toLocaleString('default', { month: 'short' });
+  const totalDaysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
   // Filter posts based on search query
   const filteredPosts = activePostsList.filter(
     (post) =>
@@ -150,23 +156,36 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Right: Striped Pattern Sync Meter + Action Pill */}
+          {/* Right: Monthly Calendar Striped Meter + Action Pill */}
           <div className="flex items-center gap-4">
-            {/* Vertical Barcode/Striped Pattern Indicator */}
-            <div className="hidden sm:flex items-center gap-0.5 px-3 py-2 bg-white/40 backdrop-blur-xs rounded-2xl border border-black/5">
-              {Array.from({ length: 36 }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`w-[2px] h-4 rounded-full ${
-                    i < 24 ? 'bg-[#111111]/70' : 'bg-[#111111]/20'
-                  }`}
-                />
-              ))}
+            {/* Monthly Calendar Striped Pattern Indicator */}
+            <div
+              className="hidden sm:flex items-center gap-0.5 px-3 py-2 bg-white/40 backdrop-blur-xs rounded-2xl border border-black/5"
+              title={`${currentMonthName} ${currentDay} • Day ${currentDay} of ${totalDaysInMonth}`}
+            >
+              {Array.from({ length: totalDaysInMonth }).map((_, i) => {
+                const dayNum = i + 1;
+                const isPastOrToday = dayNum <= currentDay;
+                const isToday = dayNum === currentDay;
+                return (
+                  <div
+                    key={i}
+                    title={`${currentMonthName} ${dayNum}`}
+                    className={`w-[2px] transition-all rounded-full ${
+                      isToday
+                        ? 'bg-[#10B981] h-5'
+                        : isPastOrToday
+                        ? 'bg-[#111111]/80 h-4'
+                        : 'bg-[#111111]/20 h-4'
+                    }`}
+                  />
+                );
+              })}
             </div>
 
-            {/* Active Sync Tag */}
+            {/* Active Month Progress Tag */}
             <div className="bg-white/80 backdrop-blur-sm border border-black/10 px-4 py-2.5 rounded-2xl text-xs font-bold font-space text-[#444444] shadow-xs">
-              Active Sync: <span className="text-[#111111]">8 Days</span>
+              {currentMonthName} {currentDay} • <span className="text-[#111111]">Day {currentDay} of {totalDaysInMonth}</span>
             </div>
 
             {/* Primary Action Button (Solid Black Pill) */}
