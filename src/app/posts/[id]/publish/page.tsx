@@ -78,11 +78,16 @@ export default function PublishPage() {
 
     let results: PublishResult[] = [];
 
+    const scheduledTimesUTC: Record<Platform, string> = {} as Record<Platform, string>;
+    Object.entries(scheduledTimes).forEach(([plat, val]) => {
+      scheduledTimesUTC[plat as Platform] = new Date(val).toISOString();
+    });
+
     if (nowPlatforms.length > 0) {
       results = await publishPostNow(postId, nowPlatforms);
     }
     if (scheduledPlatforms.length > 0) {
-      schedulePost(postId, scheduledTimes, scheduledPlatforms);
+      schedulePost(postId, scheduledTimesUTC, scheduledPlatforms);
     }
 
     setPublishResults(results);
