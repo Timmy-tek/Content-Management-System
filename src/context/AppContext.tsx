@@ -427,7 +427,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
                         supabase
                             .from('platform_versions')
-                            .update({ status: 'scheduled' })
+                            .update({ status: 'scheduled', scheduled_at: scheduledAt })
                             .eq('id', ver.id)
                             .then(({ error }) => { if (error) console.error('Failed to persist schedule:', error); });
                     }
