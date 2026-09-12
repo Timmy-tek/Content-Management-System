@@ -68,7 +68,7 @@ export function StatusCapsule({ status, label, size = 'md', className = '' }: St
 
   return (
     <span
-      className={`inline-flex items-center justify-center rounded-full transition-colors whitespace-nowrap shadow-xs ${bgClass} ${textClass} ${sizeStyles[size]} ${className}`}
+      className={`inline-flex items-center justify-center rounded-full transition-colors whitespace-nowrap shadow-sm ${bgClass} ${textClass} ${sizeStyles[size]} ${className}`}
     >
       <span className="capitalize">{defaultLabel}</span>
     </span>
