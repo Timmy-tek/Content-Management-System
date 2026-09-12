@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
@@ -26,8 +26,11 @@ import {
   Clock,
   Send,
   ChevronRight,
-  Calendar,
-  Pill
+  Calendar as CalendarIcon,
+  Pill,
+  ChevronUp,
+  X,
+  Check
 } from 'lucide-react';
 
 export default function PostLibraryPage() {
@@ -41,33 +44,72 @@ export default function PostLibraryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState<Platform | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<PostStatus | 'all'>('all');
+
+  // Timeline Navigation state
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(2025);
   const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all'); // 0 = Jan, 1 = Feb, etc.
+  const [selectedDay, setSelectedDay] = useState<number | 'all'>('all'); // 1..31
+
+  // Popover menus state
+  const [isYearMenuOpen, setIsYearMenuOpen] = useState(false);
+  const [calendarPopupMonth, setCalendarPopupMonth] = useState<number | null>(null);
+
+  const yearMenuRef = useRef<HTMLDivElement>(null);
+  const calendarPopupRef = useRef<HTMLDivElement>(null);
+
+  // Close popups on outside click
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (yearMenuRef.current && !yearMenuRef.current.contains(event.target as Node)) {
+        setIsYearMenuOpen(false);
+      }
+      if (calendarPopupRef.current && !calendarPopupRef.current.contains(event.target as Node)) {
+        setCalendarPopupMonth(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const availableYears = [2024, 2025, 2026];
 
   const months = [
-    { num: 0, label: 'Jan' },
-    { num: 1, label: 'Feb' },
-    { num: 2, label: 'Mar' },
-    { num: 3, label: 'Apr' },
-    { num: 4, label: 'May' },
-    { num: 5, label: 'Jun' },
-    { num: 6, label: 'Jul' },
-    { num: 7, label: 'Aug' },
-    { num: 8, label: 'Sep' },
-    { num: 9, label: 'Oct' },
-    { num: 10, label: 'Nov' },
-    { num: 11, label: 'Dec' },
+    { num: 0, label: 'Jan', name: 'January', daysCount: 31 },
+    { num: 1, label: 'Feb', name: 'February', daysCount: 28 },
+    { num: 2, label: 'Mar', name: 'March', daysCount: 31 },
+    { num: 3, label: 'Apr', name: 'April', daysCount: 30 },
+    { num: 4, label: 'May', name: 'May', daysCount: 31 },
+    { num: 5, label: 'Jun', name: 'June', daysCount: 30 },
+    { num: 6, label: 'Jul', name: 'July', daysCount: 31 },
+    { num: 7, label: 'Aug', name: 'August', daysCount: 31 },
+    { num: 8, label: 'Sep', name: 'September', daysCount: 30 },
+    { num: 9, label: 'Oct', name: 'October', daysCount: 31 },
+    { num: 10, label: 'Nov', name: 'November', daysCount: 30 },
+    { num: 11, label: 'Dec', name: 'December', daysCount: 31 },
   ];
 
   // Helper to count posts per month
   const getMonthCount = (monthNum: number) => {
     return activePosts.filter((post) => {
       const d = new Date(post.createdAt);
-      return d.getMonth() === monthNum;
+      const matchesYear = selectedYear === 'all' || d.getFullYear() === selectedYear;
+      return matchesYear && d.getMonth() === monthNum;
+    }).length;
+  };
+
+  // Helper to check if a specific date in month/year has posts
+  const getDayCount = (monthNum: number, dayNum: number) => {
+    return activePosts.filter((post) => {
+      const d = new Date(post.createdAt);
+      const matchesYear = selectedYear === 'all' || d.getFullYear() === selectedYear;
+      return matchesYear && d.getMonth() === monthNum && d.getDate() === dayNum;
     }).length;
   };
 
   // Filter posts
   const filteredPosts = activePosts.filter((post) => {
+    const d = new Date(post.createdAt);
+
     const matchesSearch =
       post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       post.sourceContent.toLowerCase().includes(searchQuery.toLowerCase());
@@ -81,10 +123,24 @@ export default function PostLibraryPage() {
     const matchesFormat =
       activeFormatTab === 'all' || post.contentType === activeFormatTab;
 
-    const matchesMonth =
-      selectedMonth === 'all' || new Date(post.createdAt).getMonth() === selectedMonth;
+    const matchesYear =
+      selectedYear === 'all' || d.getFullYear() === selectedYear;
 
-    return matchesSearch && matchesPlatform && matchesStatus && matchesFormat && matchesMonth;
+    const matchesMonth =
+      selectedMonth === 'all' || d.getMonth() === selectedMonth;
+
+    const matchesDay =
+      selectedDay === 'all' || d.getDate() === selectedDay;
+
+    return (
+      matchesSearch &&
+      matchesPlatform &&
+      matchesStatus &&
+      matchesFormat &&
+      matchesYear &&
+      matchesMonth &&
+      matchesDay
+    );
   });
 
   const allPlatforms: Platform[] = ['instagram', 'linkedin', 'tiktok', 'facebook'];
@@ -202,7 +258,7 @@ export default function PostLibraryPage() {
   };
 
   return (
-    <div className="space-y-8 pb-28 font-inter text-[#111111] relative">
+    <div className="space-y-8 pb-32 font-inter text-[#111111] relative">
       {/* =========================================================================
           HERO METRIC BAR (Un-carded, directly on light background)
           ========================================================================= */}
@@ -398,6 +454,32 @@ export default function PostLibraryPage() {
             </div>
           </div>
 
+          {/* Active Date Filter Chip (If day/month/year filtered) */}
+          {(selectedMonth !== 'all' || selectedYear !== 'all' || selectedDay !== 'all') && (
+            <div className="flex items-center gap-2 pt-2 border-t border-black/5">
+              <span className="text-xs font-space text-[#777777] font-medium">Timeline Filter Active:</span>
+              <div className="inline-flex items-center gap-1.5 bg-[#111111] text-white text-xs font-bold font-space px-3 py-1 rounded-full">
+                <CalendarIcon className="w-3.5 h-3.5 text-[#E5F23A]" />
+                <span>
+                  {selectedDay !== 'all' ? `Day ${selectedDay}, ` : ''}
+                  {selectedMonth !== 'all' ? `${months[selectedMonth].name} ` : ''}
+                  {selectedYear}
+                </span>
+                <button
+                  onClick={() => {
+                    setSelectedMonth('all');
+                    setSelectedYear(2025);
+                    setSelectedDay('all');
+                  }}
+                  className="hover:text-[#E5F23A] ml-1"
+                  title="Clear timeline filter"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Filter Pills Row */}
           <div className="flex flex-wrap items-center gap-3 pt-3 border-t border-black/5">
             <div className="flex items-center gap-1.5 text-xs text-[#666666] font-space font-semibold mr-1">
@@ -474,6 +556,8 @@ export default function PostLibraryPage() {
               setStatusFilter('all');
               setActiveFormatTab('all');
               setSelectedMonth('all');
+              setSelectedYear('all');
+              setSelectedDay('all');
             }}
             className="bg-[#111111] text-white px-5 py-2.5 rounded-full text-xs font-bold font-space cursor-pointer"
           >
@@ -779,62 +863,232 @@ export default function PostLibraryPage() {
       )}
 
       {/* =========================================================================
-          FLOATING BOTTOM TIMELINE FILTER DOCK (Inspired by user attached image.png)
+          GLASSMORPHISM FLOATING TIMELINE FILTER DOCK WITH CALENDAR POPOVERS
           ========================================================================= */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-4xl w-full px-2">
-        <div className="bg-[#EFECE6]/95 backdrop-blur-md border border-black/15 shadow-2xl rounded-full p-2 flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none transition-all">
-          {/* Year Indicator Pill */}
-          <button
-            onClick={() => setSelectedMonth('all')}
-            className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 font-space font-bold text-xs shrink-0 transition-all cursor-pointer ${
-              selectedMonth === 'all'
-                ? 'bg-[#111111] text-white shadow-md'
-                : 'bg-white/80 hover:bg-white text-[#333333]'
-            }`}
-            title="Show All Months"
-          >
-            <Calendar className="w-3.5 h-3.5 text-[#E5F23A]" />
-            <span>2025</span>
-          </button>
-
-          <div className="h-4 w-[1px] bg-black/15 shrink-0 my-auto" />
-
-          {/* Month Buttons Bar */}
-          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
-            {months.map((m) => {
-              const count = getMonthCount(m.num);
-              const isSelected = selectedMonth === m.num;
-
-              return (
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[95vw] sm:max-w-4xl w-full px-2">
+        <div className="relative">
+          {/* ---------------------------------------------------------------------
+              1. YEAR SELECTOR POPOVER MENU
+              --------------------------------------------------------------------- */}
+          {isYearMenuOpen && (
+            <div
+              ref={yearMenuRef}
+              className="absolute bottom-16 left-2 bg-white/90 backdrop-blur-2xl border border-white/60 shadow-2xl rounded-2xl p-3 w-44 space-y-1.5 animate-in fade-in slide-in-from-bottom-2 z-50"
+            >
+              <div className="flex items-center justify-between pb-1.5 border-b border-black/10 px-1">
+                <span className="text-[10px] font-bold font-space uppercase text-[#777777] tracking-wider">Select Year</span>
                 <button
-                  key={m.num}
-                  onClick={() => setSelectedMonth(isSelected ? 'all' : m.num)}
-                  className={`px-3 py-1.5 rounded-full text-xs font-space font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                    isSelected
-                      ? 'bg-[#111111] text-white shadow-md'
-                      : count > 0
-                      ? 'bg-white/70 hover:bg-white text-[#111111]'
-                      : 'text-[#888888] hover:text-[#222222] hover:bg-white/40'
+                  onClick={() => setIsYearMenuOpen(false)}
+                  className="text-[#888888] hover:text-[#111111] p-0.5"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+
+              <button
+                onClick={() => {
+                  setSelectedYear('all');
+                  setIsYearMenuOpen(false);
+                }}
+                className={`w-full text-left px-3 py-2 rounded-xl text-xs font-space font-bold flex items-center justify-between transition-all ${
+                  selectedYear === 'all'
+                    ? 'bg-[#111111] text-white shadow-sm'
+                    : 'hover:bg-black/5 text-[#222222]'
+                }`}
+              >
+                <span>All Years</span>
+                {selectedYear === 'all' && <Check className="w-3.5 h-3.5 text-[#E5F23A]" />}
+              </button>
+
+              {availableYears.map((yr) => (
+                <button
+                  key={yr}
+                  onClick={() => {
+                    setSelectedYear(yr);
+                    setIsYearMenuOpen(false);
+                  }}
+                  className={`w-full text-left px-3 py-2 rounded-xl text-xs font-space font-bold flex items-center justify-between transition-all ${
+                    selectedYear === yr
+                      ? 'bg-[#111111] text-white shadow-sm'
+                      : 'hover:bg-black/5 text-[#222222]'
                   }`}
                 >
-                  <span>{m.label}</span>
-
-                  {/* Badge Pills matching image.png style */}
-                  {count > 0 && !isSelected && (
-                    <span className="bg-[#E5F23A] text-[#111111] text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                      <FileText className="w-2.5 h-2.5" />
-                      <span>{count}</span>
-                    </span>
-                  )}
-                  {count > 0 && isSelected && (
-                    <span className="bg-[#E5F23A] text-[#111111] text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
-                      <Pill className="w-2.5 h-2.5" />
-                      <span>{count}</span>
-                    </span>
-                  )}
+                  <span>{yr}</span>
+                  {selectedYear === yr && <Check className="w-3.5 h-3.5 text-[#E5F23A]" />}
                 </button>
-              );
-            })}
+              ))}
+            </div>
+          )}
+
+          {/* ---------------------------------------------------------------------
+              2. MONTH DAY-PICKER CALENDAR POPOVER MENU
+              --------------------------------------------------------------------- */}
+          {calendarPopupMonth !== null && (
+            <div
+              ref={calendarPopupRef}
+              className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-white/95 backdrop-blur-2xl border border-white/80 shadow-2xl rounded-3xl p-4 w-80 space-y-3 z-50 animate-in fade-in slide-in-from-bottom-2"
+            >
+              <div className="flex items-center justify-between pb-2 border-b border-black/10">
+                <div className="flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4 text-[#8B5CF6]" />
+                  <h4 className="text-xs font-black font-space text-[#111111]">
+                    {months[calendarPopupMonth].name} {selectedYear !== 'all' ? selectedYear : ''}
+                  </h4>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  {selectedDay !== 'all' && (
+                    <button
+                      onClick={() => setSelectedDay('all')}
+                      className="text-[10px] font-bold font-space bg-[#F4F3EF] hover:bg-[#EBEADF] text-[#444444] px-2 py-0.5 rounded-full"
+                    >
+                      Clear Day
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setCalendarPopupMonth(null)}
+                    className="text-[#888888] hover:text-[#111111] p-1"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Day Calendar Grid */}
+              <div className="space-y-2">
+                <div className="grid grid-cols-7 text-center text-[10px] font-bold font-space text-[#777777]">
+                  <span>Su</span>
+                  <span>Mo</span>
+                  <span>Tu</span>
+                  <span>We</span>
+                  <span>Th</span>
+                  <span>Fr</span>
+                  <span>Sa</span>
+                </div>
+
+                <div className="grid grid-cols-7 gap-1">
+                  {Array.from({ length: months[calendarPopupMonth].daysCount }).map((_, i) => {
+                    const dayNum = i + 1;
+                    const count = getDayCount(calendarPopupMonth, dayNum);
+                    const isSelected = selectedDay === dayNum && selectedMonth === calendarPopupMonth;
+
+                    return (
+                      <button
+                        key={dayNum}
+                        onClick={() => {
+                          setSelectedMonth(calendarPopupMonth);
+                          setSelectedDay(isSelected ? 'all' : dayNum);
+                        }}
+                        className={`h-8 rounded-xl font-space text-xs font-bold transition-all flex flex-col items-center justify-center relative cursor-pointer ${
+                          isSelected
+                            ? 'bg-[#111111] text-white shadow-md'
+                            : count > 0
+                            ? 'bg-[#E5F23A] text-[#111111] hover:bg-[#d2e02e]'
+                            : 'bg-[#F4F3EF] text-[#444444] hover:bg-[#EBEADF]'
+                        }`}
+                      >
+                        <span>{dayNum}</span>
+                        {count > 0 && (
+                          <span
+                            className={`w-1 h-1 rounded-full ${
+                              isSelected ? 'bg-[#E5F23A]' : 'bg-[#111111]'
+                            }`}
+                          />
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-black/5 flex items-center justify-between text-[10px] font-medium text-[#666666] font-space">
+                <span className="flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#E5F23A] inline-block" />
+                  Day with post activity
+                </span>
+                <button
+                  onClick={() => {
+                    setSelectedMonth(calendarPopupMonth);
+                    setSelectedDay('all');
+                    setCalendarPopupMonth(null);
+                  }}
+                  className="font-bold text-[#111111] hover:underline"
+                >
+                  Filter Entire Month
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ---------------------------------------------------------------------
+              MAIN DOCK: GLASSMORPHISM PILL BAR
+              --------------------------------------------------------------------- */}
+          <div className="bg-white/40 backdrop-blur-2xl border border-white/60 shadow-2xl rounded-full p-2 flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none transition-all">
+            {/* Year Badge Button */}
+            <button
+              onClick={() => {
+                setIsYearMenuOpen(!isYearMenuOpen);
+                setCalendarPopupMonth(null);
+              }}
+              className={`px-3.5 py-2 rounded-full flex items-center gap-1.5 font-space font-bold text-xs shrink-0 transition-all cursor-pointer border ${
+                selectedYear !== 'all'
+                  ? 'bg-[#111111] text-white border-black/20 shadow-md'
+                  : 'bg-white/80 hover:bg-white text-[#333333] border-white/40'
+              }`}
+              title="Click to change year"
+            >
+              <CalendarIcon className="w-3.5 h-3.5 text-[#E5F23A]" />
+              <span>{selectedYear}</span>
+              <ChevronUp className={`w-3 h-3 transition-transform ${isYearMenuOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            <div className="h-4 w-[1px] bg-black/15 shrink-0 my-auto" />
+
+            {/* Month Buttons Bar */}
+            <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+              {months.map((m) => {
+                const count = getMonthCount(m.num);
+                const isSelected = selectedMonth === m.num;
+                const isPopupOpen = calendarPopupMonth === m.num;
+
+                return (
+                  <button
+                    key={m.num}
+                    onClick={() => {
+                      if (calendarPopupMonth === m.num) {
+                        setCalendarPopupMonth(null);
+                      } else {
+                        setCalendarPopupMonth(m.num);
+                        setIsYearMenuOpen(false);
+                      }
+                    }}
+                    className={`px-3 py-1.5 rounded-full text-xs font-space font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 border ${
+                      isSelected || isPopupOpen
+                        ? 'bg-[#111111] text-white border-black/20 shadow-md'
+                        : count > 0
+                        ? 'bg-white/80 hover:bg-white text-[#111111] border-white/60'
+                        : 'text-[#666666] hover:text-[#111111] hover:bg-white/50 border-transparent'
+                    }`}
+                  >
+                    <span>{m.label}</span>
+
+                    {/* Badge Pills matching image.png style */}
+                    {count > 0 && !isSelected && (
+                      <span className="bg-[#E5F23A] text-[#111111] text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+                        <FileText className="w-2.5 h-2.5" />
+                        <span>{count}</span>
+                      </span>
+                    )}
+                    {count > 0 && isSelected && (
+                      <span className="bg-[#E5F23A] text-[#111111] text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+                        <Pill className="w-2.5 h-2.5" />
+                        <span>{count}</span>
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
