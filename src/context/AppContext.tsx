@@ -16,6 +16,7 @@ import {
   initialApiSettings
 } from '@/lib/mockData';
 
+import { syncPostStatus } from '@/lib/postStatus'
 import { supabase } from '@/lib/supabase';
 
 export interface PublishResult {
@@ -55,6 +56,7 @@ interface PlatformVersionRow {
     published_at: string;
     platform_post_id: string;
     analytics_snapshots: AnalyticsSnapshotRow[];
+    scheduled_at: string | null;
 }
 
 const previewTypeFor = (platform: Platform): PlatformVersion['previewType'] => {
@@ -122,6 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                         status: v.status,
                         approved: v.status !== 'review',
                         previewType: previewTypeFor(v.platform as Platform),
+                        scheduledAt: v.scheduled_at,
                         publishedAt: v.published_at,
                         platformPostId: v.platform_post_id,
                         metrics: latest
@@ -309,6 +312,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const approvePlatformVersion: AppContextType['approvePlatformVersion'] = (postId, platform) => {
         updatePlatformVersion(postId, platform, { approved: true, status: 'approved' });
 
+        syncPostStatus(postId);
+
         const version = posts.find((p) => p.id === postId)?.versions[platform];
         if (version) {
             supabase
@@ -354,6 +359,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             supabase.from('posts').update({ status: 'approved' }).eq('id', postId)
                 .then(({ error }) => { if (error) console.error('Failed to persist post status:', error); });
         }
+        syncPostStatus(postId);
     };
 
     const publishPostNow: AppContextType['publishPostNow'] = async (postId, platformsOverride) => {
@@ -408,6 +414,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 results.push({ platform: plat, success: false, error: message });
             }
         }
+
+        await syncPostStatus(postId);
 
         return results;
     };

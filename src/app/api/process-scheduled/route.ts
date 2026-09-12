@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase'
 import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok } from '@/lib/publishers'
 import { NextResponse } from 'next/server'
+import { syncPostStatus } from '@/lib/postStatus'
 
 export async function GET(req: Request) {
     const authHeader = req.headers.get('authorization')
@@ -50,6 +51,8 @@ export async function GET(req: Request) {
                 .from('platform_versions')
                 .update({ status: 'published', published_at: new Date().toISOString(), platform_post_id: platformPostId })
                 .eq('id', version.id)
+
+            await syncPostStatus(version.post_id)
 
             results.push({ versionId: version.id, platform: version.platform, success: true })
         } catch (err) {

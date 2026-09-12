@@ -102,5 +102,6 @@ export interface PerformanceInsight {
   interpretation: string;
   confidence: 'low' | 'medium' | 'high';
   impactScore: number;
+  currentPostCount: number;
   postReferences?: { title: string; avatar: string; id: string }[];
 }
