@@ -111,15 +111,15 @@ export default function DashboardPage() {
 
           {/* Right: Meta Items (Account, Pipeline ID, Status) */}
           <div className="flex flex-wrap items-center gap-6 text-xs text-[#555555] font-inter">
-            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-xs">
+            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-sm">
               <span className="text-[#888888] font-space uppercase text-[10px] tracking-wider">Account</span>
               <strong className="text-[#111111] font-bold font-space">Content Engine Lab</strong>
             </div>
-            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-xs">
+            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-sm">
               <span className="text-[#888888] font-space uppercase text-[10px] tracking-wider">Pipeline ID</span>
               <strong className="text-[#111111] font-bold font-space">CE-4905</strong>
             </div>
-            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-xs">
+            <div className="flex items-center gap-2 bg-white/60 backdrop-blur-sm px-4 py-2 rounded-full border border-black/5 shadow-sm">
               <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
               <span className="text-[#888888] font-space uppercase text-[10px] tracking-wider">Status</span>
               <strong className="text-[#111111] font-bold font-space">Multi-Channel Active</strong>
@@ -132,7 +132,7 @@ export default function DashboardPage() {
           {/* Option A: Colored Pipeline Status Pills (Exact RonDesignLab Track Style) */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Green Pill */}
-            <div className="bg-[#86EFAC] text-[#064E3B] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xs border border-black/5">
+            <div className="bg-[#86EFAC] text-[#064E3B] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-sm border border-black/5">
               <div className="w-4 h-4 rounded-full bg-[#064E3B] text-[#86EFAC] flex items-center justify-center">
                 <Check className="w-2.5 h-2.5 stroke-[3]" />
               </div>
@@ -140,7 +140,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Yellow Pill */}
-            <div className="bg-[#FDE047] text-[#713F12] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xs border border-black/5">
+            <div className="bg-[#FDE047] text-[#713F12] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-sm border border-black/5">
               <div className="w-4 h-4 rounded-full bg-[#713F12] text-[#FDE047] flex items-center justify-center">
                 <Clock className="w-2.5 h-2.5 stroke-[3]" />
               </div>
@@ -148,7 +148,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Gray/Lavender Pill */}
-            <div className="bg-[#E2E8F0] text-[#334155] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-xs border border-black/5">
+            <div className="bg-[#E2E8F0] text-[#334155] font-space font-bold text-xs px-4 py-2.5 rounded-2xl flex items-center gap-2 shadow-sm border border-black/5">
               <div className="w-4 h-4 rounded-full bg-[#334155] text-[#E2E8F0] flex items-center justify-center">
                 <Zap className="w-2.5 h-2.5 stroke-[3]" />
               </div>
@@ -184,7 +184,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Active Month Progress Tag */}
-            <div className="bg-white/80 backdrop-blur-sm border border-black/10 px-4 py-2.5 rounded-2xl text-xs font-bold font-space text-[#444444] shadow-xs">
+            <div className="bg-white/80 backdrop-blur-sm border border-black/10 px-4 py-2.5 rounded-2xl text-xs font-bold font-space text-[#444444] shadow-sm">
               {currentMonthName} {currentDay} • <span className="text-[#111111]">Day {currentDay} of {totalDaysInMonth}</span>
             </div>
 

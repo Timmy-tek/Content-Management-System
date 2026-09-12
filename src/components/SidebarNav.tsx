@@ -59,7 +59,7 @@ export function SidebarNav() {
                 key={item.href}
                 href={item.href}
                 title={item.label}
-                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-xs ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${
                   isActive
                     ? 'bg-[#1B1A18] text-[#D4F63D] shadow-md scale-105'
                     : 'bg-white text-gray-700 hover:bg-white/80 hover:text-gray-950'
