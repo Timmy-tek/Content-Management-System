@@ -25,7 +25,9 @@ import {
   CheckCircle2,
   Clock,
   Send,
-  ChevronRight
+  ChevronRight,
+  Calendar,
+  Pill
 } from 'lucide-react';
 
 export default function PostLibraryPage() {
@@ -39,6 +41,30 @@ export default function PostLibraryPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [platformFilter, setPlatformFilter] = useState<Platform | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<PostStatus | 'all'>('all');
+  const [selectedMonth, setSelectedMonth] = useState<number | 'all'>('all'); // 0 = Jan, 1 = Feb, etc.
+
+  const months = [
+    { num: 0, label: 'Jan' },
+    { num: 1, label: 'Feb' },
+    { num: 2, label: 'Mar' },
+    { num: 3, label: 'Apr' },
+    { num: 4, label: 'May' },
+    { num: 5, label: 'Jun' },
+    { num: 6, label: 'Jul' },
+    { num: 7, label: 'Aug' },
+    { num: 8, label: 'Sep' },
+    { num: 9, label: 'Oct' },
+    { num: 10, label: 'Nov' },
+    { num: 11, label: 'Dec' },
+  ];
+
+  // Helper to count posts per month
+  const getMonthCount = (monthNum: number) => {
+    return activePosts.filter((post) => {
+      const d = new Date(post.createdAt);
+      return d.getMonth() === monthNum;
+    }).length;
+  };
 
   // Filter posts
   const filteredPosts = activePosts.filter((post) => {
@@ -55,7 +81,10 @@ export default function PostLibraryPage() {
     const matchesFormat =
       activeFormatTab === 'all' || post.contentType === activeFormatTab;
 
-    return matchesSearch && matchesPlatform && matchesStatus && matchesFormat;
+    const matchesMonth =
+      selectedMonth === 'all' || new Date(post.createdAt).getMonth() === selectedMonth;
+
+    return matchesSearch && matchesPlatform && matchesStatus && matchesFormat && matchesMonth;
   });
 
   const allPlatforms: Platform[] = ['instagram', 'linkedin', 'tiktok', 'facebook'];
@@ -173,7 +202,7 @@ export default function PostLibraryPage() {
   };
 
   return (
-    <div className="space-y-8 pb-16 font-inter text-[#111111]">
+    <div className="space-y-8 pb-28 font-inter text-[#111111] relative">
       {/* =========================================================================
           HERO METRIC BAR (Un-carded, directly on light background)
           ========================================================================= */}
@@ -206,7 +235,7 @@ export default function PostLibraryPage() {
           </Link>
         </div>
 
-        {/* Metric Bar Status Badges (Inspired by Image 2 Top Header) */}
+        {/* Metric Bar Status Badges */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2">
           <div className="bg-white/80 backdrop-blur-sm p-4 rounded-2xl border border-black/10 shadow-sm flex items-center justify-between">
             <div>
@@ -328,7 +357,7 @@ export default function PostLibraryPage() {
               />
             </div>
 
-            {/* View Mode Switcher (Kanban, Grid, Table) */}
+            {/* View Mode Switcher */}
             <div className="flex items-center bg-[#F4F3EF] p-1 rounded-full border border-black/5 self-start md:self-auto shrink-0">
               <button
                 onClick={() => setViewMode('kanban')}
@@ -436,7 +465,7 @@ export default function PostLibraryPage() {
             No posts match current filters
           </h3>
           <p className="text-xs text-[#666666] font-inter">
-            Try adjusting your search query, content format tabs, or channel filters.
+            Try adjusting your search query, content format tabs, timeline dock, or channel filters.
           </p>
           <button
             onClick={() => {
@@ -444,6 +473,7 @@ export default function PostLibraryPage() {
               setPlatformFilter('all');
               setStatusFilter('all');
               setActiveFormatTab('all');
+              setSelectedMonth('all');
             }}
             className="bg-[#111111] text-white px-5 py-2.5 rounded-full text-xs font-bold font-space cursor-pointer"
           >
@@ -452,7 +482,7 @@ export default function PostLibraryPage() {
         </div>
       ) : viewMode === 'kanban' ? (
         /* =======================================================================
-           KANBAN BOARD VIEW (Inspired by Image 1 - Weihu Board)
+           KANBAN BOARD VIEW
            ======================================================================= */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 items-start">
           {kanbanColumns.map((col) => {
@@ -500,7 +530,7 @@ export default function PostLibraryPage() {
                         {/* Card Top Hashtag Pills */}
                         <div className="flex items-center justify-between gap-2">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-[10px] font-bold font-space bg-white/80 backdrop-blur-xs text-[#111111] px-2.5 py-0.5 rounded-full border border-black/5">
+                            <span className="text-[10px] font-bold font-space bg-white/80 text-[#111111] px-2.5 py-0.5 rounded-full border border-black/5">
                               #{post.contentType}
                             </span>
                             {post.platforms.slice(0, 2).map((p) => (
@@ -584,7 +614,7 @@ export default function PostLibraryPage() {
         </div>
       ) : viewMode === 'grid' ? (
         /* =======================================================================
-           GRID CARDS VIEW (3-Column Pastel Social Cards)
+           GRID CARDS VIEW
            ======================================================================= */
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPosts.map((post) => (
@@ -674,7 +704,7 @@ export default function PostLibraryPage() {
         </div>
       ) : (
         /* =======================================================================
-           TABLE SHEET VIEW (High-Density Data Row Sheet - Inspired by Image 2)
+           TABLE SHEET VIEW
            ======================================================================= */
         <div className="bg-white rounded-3xl shadow-sm border border-black/10 overflow-hidden">
           <div className="overflow-x-auto">
@@ -747,6 +777,67 @@ export default function PostLibraryPage() {
           </div>
         </div>
       )}
+
+      {/* =========================================================================
+          FLOATING BOTTOM TIMELINE FILTER DOCK (Inspired by user attached image.png)
+          ========================================================================= */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 max-w-[92vw] sm:max-w-4xl w-full px-2">
+        <div className="bg-[#EFECE6]/95 backdrop-blur-md border border-black/15 shadow-2xl rounded-full p-2 flex items-center gap-1 sm:gap-2 overflow-x-auto scrollbar-none transition-all">
+          {/* Year Indicator Pill */}
+          <button
+            onClick={() => setSelectedMonth('all')}
+            className={`px-3 py-1.5 rounded-full flex items-center gap-1.5 font-space font-bold text-xs shrink-0 transition-all cursor-pointer ${
+              selectedMonth === 'all'
+                ? 'bg-[#111111] text-white shadow-md'
+                : 'bg-white/80 hover:bg-white text-[#333333]'
+            }`}
+            title="Show All Months"
+          >
+            <Calendar className="w-3.5 h-3.5 text-[#E5F23A]" />
+            <span>2025</span>
+          </button>
+
+          <div className="h-4 w-[1px] bg-black/15 shrink-0 my-auto" />
+
+          {/* Month Buttons Bar */}
+          <div className="flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
+            {months.map((m) => {
+              const count = getMonthCount(m.num);
+              const isSelected = selectedMonth === m.num;
+
+              return (
+                <button
+                  key={m.num}
+                  onClick={() => setSelectedMonth(isSelected ? 'all' : m.num)}
+                  className={`px-3 py-1.5 rounded-full text-xs font-space font-bold transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                    isSelected
+                      ? 'bg-[#111111] text-white shadow-md'
+                      : count > 0
+                      ? 'bg-white/70 hover:bg-white text-[#111111]'
+                      : 'text-[#888888] hover:text-[#222222] hover:bg-white/40'
+                  }`}
+                >
+                  <span>{m.label}</span>
+
+                  {/* Badge Pills matching image.png style */}
+                  {count > 0 && !isSelected && (
+                    <span className="bg-[#E5F23A] text-[#111111] text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+                      <FileText className="w-2.5 h-2.5" />
+                      <span>{count}</span>
+                    </span>
+                  )}
+                  {count > 0 && isSelected && (
+                    <span className="bg-[#E5F23A] text-[#111111] text-[10px] font-black px-1.5 py-0.2 rounded-full flex items-center gap-0.5">
+                      <Pill className="w-2.5 h-2.5" />
+                      <span>{count}</span>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
