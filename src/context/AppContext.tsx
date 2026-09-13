@@ -124,7 +124,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                         status: v.status,
                         approved: v.status !== 'review',
                         previewType: previewTypeFor(v.platform as Platform),
-                        scheduledAt: v.scheduled_at,
+                        scheduledAt: v.scheduled_at ?? undefined,
                         publishedAt: v.published_at,
                         platformPostId: v.platform_post_id,
                         metrics: latest
