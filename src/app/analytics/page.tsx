@@ -206,7 +206,7 @@ export default function AnalyticsPage() {
         {growthSnapshots.length < 2 ? (
             <div className="h-48 flex items-center justify-center text-center px-8">
               <p className="text-sm text-[#666666] font-inter">
-                Not enough history yet — click "Sync Analytics" a few times over the coming days to start seeing a real growth trend here.
+                {`Not enough history yet — click "Sync Analytics" a few times over the coming days to start seeing a real growth trend here.`}
               </p>
             </div>
         ) : (
