@@ -11,10 +11,10 @@ import {
   Platform
 } from '@/types';
 import {
-  initialPosts,
   initialConnections,
   initialBrandSettings,
-  initialApiSettings
+  initialApiSettings,
+  initialPosts
 } from '@/lib/mockData';
 
 import { supabase } from '@/lib/supabase';
@@ -95,11 +95,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     React.useEffect(() => {
         async function loadPosts() {
-            if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
-                setPosts(initialPosts);
-                return;
-            }
-
             try {
                 const { data, error } = await supabase
                     .from('posts')
@@ -107,72 +102,71 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     .order('created_at', { ascending: false });
 
                 if (error || !data || data.length === 0) {
-                    if (error) console.error('Failed to load posts:', error);
-                    setPosts(initialPosts);
                     return;
                 }
 
-            const mapped: Post[] = data.map((row) => {
-                const versions: Post['versions'] = {};
-                (row.platform_versions || []).forEach((v: PlatformVersionRow) => {
-                    const snapshots: AnalyticsSnapshotRow[] = v.analytics_snapshots || [];
-                    const latest = snapshots.sort((a, b) =>
-                        new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime()
-                    )[0];
+                const mapped: Post[] = data.map((row) => {
+                    const versions: Post['versions'] = {};
+                    (row.platform_versions || []).forEach((v: PlatformVersionRow) => {
+                        const snapshots: AnalyticsSnapshotRow[] = v.analytics_snapshots || [];
+                        const latest = snapshots.sort((a, b) =>
+                            new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime()
+                        )[0];
 
-                    versions[v.platform as Platform] = {
-                        id: v.id,
-                        postId: v.post_id,
-                        platform: v.platform as Platform,
-                        caption: v.caption,
-                        hashtags: v.hashtags || [],
-                        status: v.status,
-                        approved: v.status !== 'review',
-                        previewType: previewTypeFor(v.platform as Platform),
-                        publishedAt: v.published_at,
-                        platformPostId: v.platform_post_id,
-                        metrics: latest
-                            ? {
-                                reach: latest.reach,
-                                likes: latest.likes,
-                                comments: latest.comments,
-                                saves: latest.saves,
-                                shares: 0,
-                                clicks: 0,
-                                engagementRate: latest.reach > 0
-                                    ? Number((((latest.likes + latest.comments) / latest.reach) * 100).toFixed(1))
-                                    : 0,
-                                sparkline: [],
-                            }
-                            : undefined,
+                        versions[v.platform as Platform] = {
+                            id: v.id,
+                            postId: v.post_id,
+                            platform: v.platform as Platform,
+                            caption: v.caption,
+                            hashtags: v.hashtags || [],
+                            status: v.status,
+                            approved: v.status !== 'review',
+                            previewType: previewTypeFor(v.platform as Platform),
+                            publishedAt: v.published_at,
+                            platformPostId: v.platform_post_id,
+                            metrics: latest
+                                ? {
+                                    reach: latest.reach,
+                                    likes: latest.likes,
+                                    comments: latest.comments,
+                                    saves: latest.saves,
+                                    shares: 0,
+                                    clicks: 0,
+                                    engagementRate: latest.reach > 0
+                                        ? Number((((latest.likes + latest.comments) / latest.reach) * 100).toFixed(1))
+                                        : 0,
+                                    sparkline: [],
+                                }
+                                : undefined,
+                        };
+                    });
+
+                    return {
+                        id: row.id,
+                        title: row.title,
+                        contentType: row.content_type,
+                        sourceContent: row.source_text,
+                        imageUrl: row.image_url,
+                        status: row.status,
+                        createdAt: row.created_at,
+                        goal: row.primary_goal,
+                        audience: row.target_audience,
+                        owner: {
+                            name: 'Sarah Chen',
+                            avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+                            role: 'Head of Content',
+                        },
+                        platforms: Object.keys(versions) as Platform[],
+                        versions,
                     };
                 });
 
-                return {
-                    id: row.id,
-                    title: row.title,
-                    contentType: row.content_type,
-                    sourceContent: row.source_text,
-                    imageUrl: row.image_url,
-                    status: row.status,
-                    createdAt: row.created_at,
-                    goal: row.primary_goal,
-                    audience: row.target_audience,
-                    owner: {
-                        name: 'Sarah Chen',
-                        avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-                        role: 'Head of Content',
-                    },
-                    platforms: Object.keys(versions) as Platform[],
-                    versions,
-                };
-            });
-
-            setPosts(mapped);
-        } catch (e) {
-            console.error(e);
-            setPosts(initialPosts);
-        }
+                if (mapped.length > 0) {
+                    setPosts(mapped);
+                }
+            } catch (err) {
+                console.error('Failed to load posts from supabase, fallback to initialPosts', err);
+            }
         }
 
         loadPosts();

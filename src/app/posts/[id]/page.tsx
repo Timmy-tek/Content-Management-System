@@ -9,7 +9,6 @@ import { Platform } from '@/types';
 import { BranchingPipeline } from '@/components/BranchingPipeline';
 import { PlatformBadge } from '@/components/PlatformBadge';
 import { StatusCapsule } from '@/components/StatusCapsule';
-import { SocialPreview } from '@/components/SocialPreview';
 import {
   ArrowLeft,
   BarChart2,
@@ -51,29 +50,29 @@ export default function PostDetailPage() {
 
   if (!hasVersions) {
     return (
-      <div className="max-w-md mx-auto my-12 bg-white rounded-3xl p-8 text-center shadow-lg border border-black/5 space-y-4">
-        <FileText className="w-10 h-10 text-[#777777] mx-auto" />
-        <h2 className="text-lg font-bold font-space text-[#111111]">
-          No adapted content yet
-        </h2>
-        <p className="text-xs text-[#666666] font-inter">
-          This post hasn&apos;t been through AI adaptation. Delete it if it was a test entry, or start a new adaptation with this content.
-        </p>
-        <div className="flex items-center justify-center gap-2 pt-2">
-          <button
-            onClick={() => router.push('/posts')}
-            className="bg-[#F2F1EF] text-[#111111] px-5 py-2 rounded-full text-xs font-bold font-space"
-          >
-            Back to Library
-          </button>
-          <button
-            onClick={() => router.push('/posts/new')}
-            className="bg-[#111111] text-white px-5 py-2 rounded-full text-xs font-bold font-space"
-          >
-            Start New Adaptation
-          </button>
+        <div className="max-w-md mx-auto my-12 bg-white rounded-3xl p-8 text-center shadow-lg border border-black/5 space-y-4">
+          <FileText className="w-10 h-10 text-[#777777] mx-auto" />
+          <h2 className="text-lg font-bold font-space text-[#111111]">
+            No adapted content yet
+          </h2>
+          <p className="text-xs text-[#666666] font-inter">
+            This post hasn&apos;t been through AI adaptation. Delete it if it was a test entry, or start a new adaptation with this content.
+          </p>
+          <div className="flex items-center justify-center gap-2 pt-2">
+            <button
+                onClick={() => router.push('/posts')}
+                className="bg-[#F2F1EF] text-[#111111] px-5 py-2 rounded-full text-xs font-bold font-space"
+            >
+              Back to Library
+            </button>
+            <button
+                onClick={() => router.push('/posts/new')}
+                className="bg-[#111111] text-white px-5 py-2 rounded-full text-xs font-bold font-space"
+            >
+              Start New Adaptation
+            </button>
+          </div>
         </div>
-      </div>
     );
   }
 
@@ -143,8 +142,8 @@ export default function PostDetailPage() {
         />
       </div>
 
-      {/* SURFACE 1: Detailed Per-Platform Metric Cards & Mobile Preview */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+      {/* SURFACE 1: Detailed Per-Platform Metric Cards Below */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
 
         {/* Left Column: Platform Adapted Copy & Hashtags */}
         <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-lg shadow-black/5 border border-black/5 space-y-6">
@@ -189,9 +188,11 @@ export default function PostDetailPage() {
               </span>
             </div>
           )}
+        </div>
 
-          {/* Telemetry card inside left column */}
-          <div className="bg-[#F8F8F7] rounded-2xl p-6 border border-black/5 space-y-4">
+        {/* Right Column: Performance Telemetry Cards */}
+        <div className="lg:col-span-5 space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-lg shadow-black/5 border border-black/5 space-y-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <BarChart2 className="w-5 h-5 text-[#111111]" />
@@ -206,7 +207,7 @@ export default function PostDetailPage() {
 
             {metrics ? (
               <div className="grid grid-cols-2 gap-4 pt-2">
-                <div className="bg-white p-4 rounded-2xl border border-black/5">
+                <div className="bg-[#F2F1EF] p-4 rounded-2xl">
                   <span className="text-[10px] font-bold font-space uppercase text-[#777777] block">
                     Total Reach
                   </span>
@@ -215,7 +216,7 @@ export default function PostDetailPage() {
                   </span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-black/5">
+                <div className="bg-[#F2F1EF] p-4 rounded-2xl">
                   <span className="text-[10px] font-bold font-space uppercase text-[#777777] block">
                     Engagement Rate
                   </span>
@@ -224,7 +225,7 @@ export default function PostDetailPage() {
                   </span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-black/5">
+                <div className="bg-[#F2F1EF] p-4 rounded-2xl">
                   <span className="text-[10px] font-bold font-space uppercase text-[#777777] block">
                     Likes / Reactions
                   </span>
@@ -233,7 +234,7 @@ export default function PostDetailPage() {
                   </span>
                 </div>
 
-                <div className="bg-white p-4 rounded-2xl border border-black/5">
+                <div className="bg-[#F2F1EF] p-4 rounded-2xl">
                   <span className="text-[10px] font-bold font-space uppercase text-[#777777] block">
                     Saves & Bookmarks
                   </span>
@@ -243,39 +244,13 @@ export default function PostDetailPage() {
                 </div>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl p-6 text-center space-y-2 border border-black/5">
+              <div className="bg-[#F2F1EF] rounded-2xl p-8 text-center space-y-2">
                 <Eye className="w-8 h-8 text-[#777777] mx-auto" />
                 <p className="text-xs text-[#555555] font-inter">
                   Performance metrics will populate automatically once published to social API queues.
                 </p>
               </div>
             )}
-          </div>
-        </div>
-
-        {/* Right Column: Platform Mobile Mockup Preview */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold font-space uppercase text-[#111111] flex items-center gap-2">
-                <Eye className="w-4 h-4 text-[#111111]" />
-                Live Channel Mobile Mockup
-              </span>
-              <span className="text-[10px] bg-[#F2F1EF] px-2.5 py-1 rounded-full font-mono text-gray-700 capitalize">
-                {activePlatKey}
-              </span>
-            </div>
-
-            <div className="bg-[#18181B] p-4 rounded-2xl">
-              <SocialPreview
-                platform={activePlatKey}
-                caption={activeVersion?.caption || ''}
-                hashtags={activeVersion?.hashtags || []}
-                imageUrl={post.imageUrl || activeVersion?.mediaUrl}
-                authorName={post.owner.name}
-                authorAvatar={post.owner.avatar}
-              />
-            </div>
           </div>
 
           {/* Owner Card */}
