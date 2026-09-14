@@ -8,14 +8,16 @@ import { BranchingPipeline } from '@/components/BranchingPipeline';
 import { ScrubberBar } from '@/components/ScrubberBar';
 import { PlatformBadge } from '@/components/PlatformBadge';
 import { StatusCapsule } from '@/components/StatusCapsule';
-import { MobileFeedMockup } from '@/components/MobileFeedMockup';
+import { SocialPreview } from '@/components/SocialPreview';
 import {
   Check,
   RotateCw,
   ArrowRight,
   AlertCircle,
   Eye,
-  Hash
+  Hash,
+  ArrowLeft,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function ReviewPage() {
@@ -107,7 +109,22 @@ export default function ReviewPage() {
   };
 
   return (
-    <div className="space-y-8 pb-36">
+    <div className="space-y-8 pb-28">
+      {/* Top Header Controls */}
+      <div className="flex items-center justify-between">
+        <button
+          onClick={() => router.push('/posts')}
+          className="inline-flex items-center gap-1.5 text-xs font-bold font-space text-[#111111] bg-white px-4 py-2 rounded-full shadow-sm hover:bg-white/80 transition-all cursor-pointer border border-black/5"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          <span>Back to Library</span>
+        </button>
+
+        <div className="flex items-center gap-2">
+          <StatusCapsule status={post.status} size="md" />
+        </div>
+      </div>
+
       {/* SURFACE 2: Dedicated dark charcoal panel (#3A3936) with acid lime-yellow glow border (#E5F23A) */}
       <div className="bg-[#3A3936] text-white rounded-3xl p-6 sm:p-8 border-2 border-[#E5F23A] shadow-2xl relative overflow-hidden">
 
@@ -119,18 +136,17 @@ export default function ReviewPage() {
           <div>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-bold uppercase tracking-widest text-[#E5F23A] font-space">
-                Surface 2 — Adaptation Pipeline & Review
+                Surface 2 — Adaptation Workspace & Review
               </span>
-              <StatusCapsule status={post.status} size="sm" />
             </div>
             <h1 className="text-2xl sm:text-3xl font-bold font-space text-white mt-1">
               {post.title}
             </h1>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-white/60 font-inter">
-              Master Source: {post.contentType}
+          <div className="flex items-center gap-2 bg-[#2A2926] px-4 py-2 rounded-2xl border border-white/10">
+            <span className="text-xs text-white/80 font-inter">
+              Content Source: <strong className="text-white capitalize">{post.contentType}</strong>
             </span>
           </div>
         </div>
@@ -145,7 +161,6 @@ export default function ReviewPage() {
         </div>
 
         {/* 2. Platform Navigation Filter Pills inside Panel */}
-        {/* Navigation pills: dark (#4A4945) with white text; active pill is solid white with dark text */}
         <div className="flex items-center justify-between flex-wrap gap-4 mb-6 relative z-10">
           <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-1">
             {platforms.map((p) => {
@@ -156,34 +171,34 @@ export default function ReviewPage() {
                 <button
                   key={p}
                   onClick={() => setActivePlatform(p)}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold font-space transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold font-space transition-all cursor-pointer ${
                     isActive
-                      ? 'bg-white text-[#111111] shadow-lg scale-105'
+                      ? 'bg-[#E5F23A] text-black shadow-lg scale-105'
                       : 'bg-[#4A4945] text-white hover:bg-[#5A5955]'
                   }`}
                 >
                   <PlatformBadge platform={p} size="sm" />
                   <span className="capitalize">{p}</span>
                   {isApproved && (
-                    <span className="w-2 h-2 rounded-full bg-[#A9F5A0]" title="Approved" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-black" />
                   )}
                 </button>
               );
             })}
           </div>
 
-          <div className="text-xs text-white/70 font-inter">
-            {platforms.filter((p) => post.versions[p]?.approved).length} of {platforms.length} approved
+          <div className="text-xs text-white/70 font-inter bg-black/20 px-3 py-1.5 rounded-full">
+            {platforms.filter((p) => post.versions[p]?.approved).length} of {platforms.length} platforms approved
           </div>
         </div>
 
         {/* 3. Inverted Warm Cream Card (#EFEDE3, dark text) floating inside dark panel */}
         {currentVersion && (
-          <div className="bg-[#EFEDE3] text-[#111111] rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8">
+          <div className="bg-[#EFEDE3] text-[#111111] rounded-3xl p-6 sm:p-8 shadow-2xl relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
             {/* Left Column: Editable Caption & Hashtags */}
-            <div className="lg:col-span-7 space-y-5">
-              <div className="flex items-center justify-between border-b border-black/10 pb-3">
+            <div className="lg:col-span-7 space-y-6">
+              <div className="flex items-center justify-between border-b border-black/10 pb-4">
                 <div className="flex items-center gap-3">
                   <PlatformBadge platform={activePlatform} size="md" showLabel />
                   <StatusCapsule status={currentVersion.approved ? 'approved' : 'review'} size="sm" />
@@ -195,87 +210,83 @@ export default function ReviewPage() {
                   className="flex items-center gap-1.5 text-xs font-bold font-space text-[#111111] bg-black/5 hover:bg-black/10 px-3 py-1.5 rounded-full transition-colors cursor-pointer"
                 >
                   <RotateCw className={`w-3.5 h-3.5 ${isRegenerating ? 'animate-spin text-[#111111]' : ''}`} />
-                  <span>{isRegenerating ? 'Adapting...' : 'Regenerate AI'}</span>
+                  <span>{isRegenerating ? 'Adapting AI...' : 'Regenerate Draft'}</span>
                 </button>
               </div>
 
               {/* Editable Caption area */}
               <div>
-                <label className="block text-[11px] font-bold font-space uppercase tracking-wider text-[#444444] mb-1.5">
-                  Adapted Caption & Copy
+                <label className="block text-[11px] font-bold font-space uppercase tracking-wider text-[#444444] mb-2 flex items-center justify-between">
+                  <span>Adapted Platform Copy</span>
+                  <span className="text-[10px] text-gray-500 font-normal">Real-time sync to feed preview</span>
                 </label>
                 <textarea
-                  rows={6}
+                  rows={8}
                   value={currentVersion.caption}
                   onChange={(e) => handleCaptionChange(e.target.value)}
                   className="w-full bg-white border border-black/10 rounded-2xl p-4 text-xs font-inter text-[#111111] leading-relaxed focus:outline-none focus:ring-2 focus:ring-[#111111] shadow-inner"
+                  placeholder="Enter or edit caption..."
                 />
               </div>
 
               {/* Editable Hashtags */}
               <div>
-                <label className="block text-[11px] font-bold font-space uppercase tracking-wider text-[#444444] mb-1.5 flex items-center gap-1">
+                <label className="block text-[11px] font-bold font-space uppercase tracking-wider text-[#444444] mb-2 flex items-center gap-1">
                   <Hash className="w-3.5 h-3.5" />
-                  Target Hashtags
+                  Target Hashtags & Keywords
                 </label>
                 <input
                   type="text"
                   value={currentVersion.hashtags.join(' ')}
                   onChange={(e) => handleHashtagsChange(e.target.value)}
-                  className="w-full bg-white border border-black/10 rounded-2xl px-4 py-2.5 text-xs font-inter text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#111111]"
+                  className="w-full bg-white border border-black/10 rounded-2xl px-4 py-3 text-xs font-inter text-[#111111] focus:outline-none focus:ring-2 focus:ring-[#111111]"
+                  placeholder="#tag1 #tag2"
                 />
               </div>
 
               {/* Individual Approve button */}
-              <div className="pt-2 flex items-center justify-between">
+              <div className="pt-2 flex items-center justify-between border-t border-black/5">
                 <span className="text-[11px] text-[#666666] font-inter">
-                  Status: {currentVersion.approved ? 'Approved for publishing' : 'Awaiting review'}
+                  Draft status: {currentVersion.approved ? 'Approved for publishing queue' : 'Needs review & verification'}
                 </span>
 
                 <button
                   type="button"
                   onClick={handleApproveCurrent}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-xs font-bold font-space transition-all cursor-pointer ${
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-full text-xs font-bold font-space transition-all cursor-pointer ${
                     currentVersion.approved
                       ? 'bg-[#A9F5A0] text-[#0B4F07] border border-[#0B4F07]/20 shadow-sm'
                       : 'bg-[#111111] text-white hover:bg-[#222222] shadow-md'
                   }`}
                 >
                   <Check className="w-4 h-4" />
-                  <span>{currentVersion.approved ? 'Approved ✓' : 'Approve Draft'}</span>
+                  <span>{currentVersion.approved ? 'Approved ✓' : `Approve ${activePlatform}`}</span>
                 </button>
               </div>
             </div>
 
-            {/* Right Column: Platform Feed Preview Box */}
-            <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-black/10 flex flex-col items-center justify-between space-y-4 overflow-hidden">
-              <div className="w-full">
-                <div className="flex items-center justify-between mb-4 border-b border-black/5 pb-2">
-                  <span className="text-[10px] font-bold uppercase font-space text-[#777777] flex items-center gap-1">
-                    <Eye className="w-3.5 h-3.5" />
-                    Live Mobile Feed Mockup
-                  </span>
-                  <span className="text-[10px] bg-[#F2F1EF] px-2 py-0.5 rounded-full font-mono text-gray-600 capitalize">
-                    {activePlatform}
-                  </span>
-                </div>
-
-                {/* High-fidelity Realistic Platform Feed Mockup Component */}
-                <div className="py-2 flex justify-center">
-                  <MobileFeedMockup
-                    platform={activePlatform}
-                    caption={currentVersion.caption}
-                    hashtags={currentVersion.hashtags}
-                    mediaUrl={currentVersion.mediaUrl}
-                    title={post.title}
-                  />
-                </div>
+            {/* Right Column: Platform Mobile Feed Mockup Preview Box */}
+            <div className="lg:col-span-5 space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <span className="text-[11px] font-bold uppercase font-space text-[#555555] flex items-center gap-1.5">
+                  <Eye className="w-4 h-4 text-[#111111]" />
+                  Live Mobile Feed Mockup
+                </span>
+                <span className="text-[10px] bg-black/10 px-2.5 py-1 rounded-full font-mono text-gray-700 capitalize">
+                  {activePlatform} Format
+                </span>
               </div>
 
-              <div className="text-center pt-2">
-                <span className="text-[11px] text-gray-500 font-inter">
-                  Human review ensures tone safety before publishing.
-                </span>
+              {/* Dynamic Native Mobile Mockup Component */}
+              <div className="bg-[#18181B] p-4 rounded-3xl shadow-xl border border-black/10">
+                <SocialPreview
+                  platform={activePlatform}
+                  caption={currentVersion.caption}
+                  hashtags={currentVersion.hashtags}
+                  imageUrl={post.imageUrl || currentVersion.mediaUrl}
+                  authorName={post.owner.name}
+                  authorAvatar={post.owner.avatar}
+                />
               </div>
             </div>
 
@@ -283,21 +294,20 @@ export default function ReviewPage() {
         )}
 
         {/* Primary Action Button Bar: "Approve All & Continue" */}
-        {/* Exactly one high-contrast solid black (#111111) pill button per screen */}
         <div className="mt-8 pt-6 border-t border-white/10 flex flex-wrap items-center justify-between gap-4 relative z-10">
           {!allApproved && (
-              <button
-                  type="button"
-                  onClick={() => approveAllPlatformVersions(postId)}
-                  className="text-xs font-bold font-space text-[#E5F23A] hover:text-white transition-colors cursor-pointer underline underline-offset-2"
-              >
-                Approve all drafts at once
-              </button>
+            <button
+              type="button"
+              onClick={() => approveAllPlatformVersions(postId)}
+              className="text-xs font-bold font-space text-[#E5F23A] hover:text-white transition-colors cursor-pointer underline underline-offset-2"
+            >
+              Approve all platform drafts at once
+            </button>
           )}
           <div className="text-xs text-white/70 font-inter">
             {allApproved ? (
-              <span className="text-[#A9F5A0] font-bold font-space">
-                ✓ All platform drafts approved! Ready to publish or schedule.
+              <span className="text-[#A9F5A0] font-bold font-space flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4" /> All platform drafts approved! Ready to publish or schedule.
               </span>
             ) : (
               <span>Approving all formats will enable automated publishing queue.</span>
