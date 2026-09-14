@@ -20,6 +20,19 @@ interface SyncResult {
   error?: string;
 }
 
+interface SnapshotSyncResult {
+  platform: string;
+  type: string;
+  success: boolean;
+  error?: string;
+}
+
+interface DailyFollowerPoint {
+  day: string;
+  instagram?: number;
+  facebook?: number;
+}
+
 export default function AnalyticsPage() {
   const { posts } = useApp();
 
@@ -35,9 +48,12 @@ export default function AnalyticsPage() {
     try {
       const res = await fetch('/api/sync-analytics', { method: 'POST' });
       const data = await res.json();
-      const succeeded = data.results?.filter((r: SyncResult) => r.success).length || 0;
-      const failed = data.results?.filter((r: SyncResult) => !r.success).length || 0;
-      setSyncMessage(`Synced ${succeeded} post${succeeded === 1 ? '' : 's'}${failed > 0 ? `, ${failed} failed` : ''}. Refresh to see updates.`);
+      const postsSucceeded = data.postResults?.filter((r: SyncResult) => r.success).length || 0;
+      const postsFailed = data.postResults?.filter((r: SyncResult) => !r.success).length || 0;
+      const snapshotsSucceeded = data.snapshotResults?.filter((r: SnapshotSyncResult) => r.success).length || 0;
+      setSyncMessage(
+          `Posts: ${postsSucceeded} synced${postsFailed > 0 ? `, ${postsFailed} failed` : ''}. Follower snapshot: ${snapshotsSucceeded}/2 platforms.`
+      );
     } catch {
       setSyncMessage('Sync failed. Try again.');
     }
@@ -133,6 +149,15 @@ export default function AnalyticsPage() {
   }, [syncMessage]); // refetches right after you click Sync
 
 
+  const dailyGrouped = growthSnapshots.reduce((acc, snap) => {
+    const day = new Date(snap.fetched_at).toLocaleDateString();
+    if (!acc[day]) acc[day] = { day };
+    if (snap.platform === 'instagram') acc[day].instagram = snap.followers;
+    if (snap.platform === 'facebook') acc[day].facebook = snap.followers;
+    return acc;
+  }, {} as Record<string, DailyFollowerPoint>);
+
+  const chartDays: DailyFollowerPoint[] = Object.values(dailyGrouped);
 
   return (
     <div className="space-y-8 pb-16">
@@ -203,29 +228,43 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Visual Line/Bar Chart Representation */}
-        {growthSnapshots.length < 2 ? (
+        {chartDays.length < 1 ? (
             <div className="h-48 flex items-center justify-center text-center px-8">
               <p className="text-sm text-[#666666] font-inter">
-                {`Not enough history yet — click "Sync Analytics" a few times over the coming days to start seeing a real growth trend here.`}
+                {`Not enough history yet — click "Sync Analytics" on a few different days to start seeing a real growth trend here.`}
               </p>
             </div>
         ) : (
-            <div className="h-48 pt-4 flex items-end justify-between gap-3 px-2 overflow-x-auto">
-              {growthSnapshots.map((snap, idx) => {
-                const maxFollowers = Math.max(...growthSnapshots.map((s) => s.followers));
-                const height = (snap.followers / maxFollowers) * 100;
-                const color = snap.platform === 'instagram' ? 'bg-[#DD2A7B]' : 'bg-[#1877F2]';
+            <div className="h-48 pt-4 flex items-end justify-between gap-4 px-2 overflow-x-auto">
+              {chartDays.map((point, idx) => {
+                const allValues = chartDays.flatMap((d) => [d.instagram, d.facebook].filter(Boolean)) as number[];
+                const maxFollowers = Math.max(...allValues, 1);
 
                 return (
-                    <div key={idx} className="flex-1 min-w-[32px] flex flex-col items-center gap-2 h-full justify-end group">
-                      <div className={`w-full rounded-t-xl relative ${color}`} style={{ height: `${height}%` }}>
-            <span className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#111111] text-white text-[10px] py-0.5 px-1.5 rounded font-mono font-bold whitespace-nowrap z-20">
-              {snap.followers.toLocaleString()}
-            </span>
+                    <div key={idx} className="flex-1 min-w-[64px] flex flex-col items-center gap-2 h-full justify-end">
+                      <div className="w-full flex items-end justify-center gap-1.5 h-full">
+                        {point.instagram !== undefined && (
+                            <div
+                                className="w-1/2 bg-[#DD2A7B] rounded-t-xl relative group"
+                                style={{ height: `${Math.max((point.instagram / maxFollowers) * 100, 2)}%` }}
+                            >
+    <span className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#111111] text-white text-[10px] py-0.5 px-1.5 rounded font-mono font-bold whitespace-nowrap z-20">
+      {point.instagram.toLocaleString()}
+    </span>
+                            </div>
+                        )}
+                        {point.facebook !== undefined && (
+                            <div
+                                className="w-1/2 bg-[#1877F2] rounded-t-xl relative group"
+                                style={{ height: `${Math.max((point.facebook / maxFollowers) * 100, 2)}%` }}
+                            >
+    <span className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#111111] text-white text-[10px] py-0.5 px-1.5 rounded font-mono font-bold whitespace-nowrap z-20">
+      {point.facebook.toLocaleString()}
+    </span>
+                            </div>
+                        )}
                       </div>
-                      <span className="text-[10px] font-bold font-space text-[#555555] whitespace-nowrap">
-            {new Date(snap.fetched_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-          </span>
+                      <span className="text-[10px] font-bold font-space text-[#555555] whitespace-nowrap">{point.day}</span>
                     </div>
                 );
               })}

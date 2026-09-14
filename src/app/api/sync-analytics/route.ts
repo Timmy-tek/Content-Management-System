@@ -102,7 +102,10 @@ export async function POST() {
             results.push({ platform: platformName, type: 'follower_snapshot', success: false, error: message })
         }
     }
-    return NextResponse.json({ results })
+    const postResults = results.filter((r: any) => 'versionId' in r);
+    const snapshotResults = results.filter((r: any) => 'type' in r && r.type === 'follower_snapshot');
+
+    return NextResponse.json({ postResults, snapshotResults });
 }
 
 async function snapshotFollowerCount(platform: string, accountId: string, accessToken: string) {
