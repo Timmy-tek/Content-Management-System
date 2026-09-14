@@ -6,6 +6,14 @@ interface InstagramInsightMetric {
     values: { value: number }[]
 }
 
+interface SyncResultEntry {
+    versionId?: string
+    platform?: string
+    type?: string
+    success: boolean
+    error?: string
+}
+
 async function fetchInstagramInsights(mediaId: string, accessToken: string) {
     const res = await fetch(
         `https://graph.instagram.com/v21.0/${mediaId}/insights?metric=reach,likes,comments,saved,shares&access_token=${accessToken}`
@@ -102,8 +110,8 @@ export async function POST() {
             results.push({ platform: platformName, type: 'follower_snapshot', success: false, error: message })
         }
     }
-    const postResults = results.filter((r: any) => 'versionId' in r);
-    const snapshotResults = results.filter((r: any) => 'type' in r && r.type === 'follower_snapshot');
+    const postResults = (results as SyncResultEntry[]).filter((r) => 'versionId' in r);
+    const snapshotResults = (results as SyncResultEntry[]).filter((r) => r.type === 'follower_snapshot');
 
     return NextResponse.json({ postResults, snapshotResults });
 }
