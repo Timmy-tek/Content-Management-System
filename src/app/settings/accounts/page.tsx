@@ -45,12 +45,26 @@ export default function ConnectedAccountsPage() {
   const [tokenInput, setTokenInput] = useState('');
   const [accountIdInput, setAccountIdInput] = useState('');
 
-  const handleSaveToken = (platform: Platform) => {
+  const handleSaveToken = async (platform: Platform) => {
+    let accountName = '';
+    let followers = 0;
+
+    try {
+      const res = await fetch(`https://graph.instagram.com/v21.0/${accountIdInput}?fields=username,followers_count&access_token=${tokenInput}`);
+      const data = await res.json();
+      accountName = data.username || '';
+      followers = data.followers_count || 0;
+    } catch {
+      // fall through — save the connection even if this lookup fails
+    }
+
     updateConnection(platform, {
       connected: true,
       status: 'connected',
       accessToken: tokenInput,
       accountId: accountIdInput,
+      accountName,
+      followers,
       tokenExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
     });
     setShowTokenForm(null);

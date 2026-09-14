@@ -31,6 +31,7 @@ export async function GET(req: Request) {
             platform: 'linkedin',
             connected: true,
             account_id: memberUrn,
+            account_name: payload.name,
             access_token: tokenData.access_token,
             token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
         },

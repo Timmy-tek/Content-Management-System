@@ -186,7 +186,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     const dbConn = data.find((d) => d.platform === mockConn.platform);
 
                     if (!dbConn) {
-                        // no real row yet — this platform is genuinely not connected
                         return {
                             ...mockConn,
                             connected: false,
@@ -208,6 +207,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                             : daysUntilExpiry !== null && daysUntilExpiry < 5
                                 ? 'expiring'
                                 : 'connected',
+                        accountName: dbConn.account_name || mockConn.accountName,
+                        followers: dbConn.follower_count ?? mockConn.followers,
                         accountId: dbConn.account_id ?? undefined,
                         accessToken: dbConn.access_token ?? undefined,
                         tokenExpiresAt: dbConn.token_expires_at
@@ -468,6 +469,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     platform,
                     connected: updates.connected,
                     account_id: updates.accountId,
+                    account_name: updates.accountName,
+                    follower_count: updates.followers,
                     access_token: updates.accessToken,
                     token_expires_at: updates.tokenExpiresAt && updates.tokenExpiresAt !== 'Disconnected'
                         ? new Date(updates.tokenExpiresAt).toISOString()

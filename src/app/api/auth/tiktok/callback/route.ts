@@ -32,6 +32,11 @@ export async function GET(req: Request) {
         return NextResponse.redirect(`${process.env.APP_URL}/settings/accounts?error=tiktok_token`);
     }
 
+    const userInfoRes = await fetch(`https://open.tiktokapis.com/v2/user/info/?fields=display_name`, {
+        headers: { Authorization: `Bearer ${tokenData.access_token}` },
+    })
+    const userInfo = await userInfoRes.json()
+
     await supabase.from('platform_connections').upsert(
         {
             platform: 'tiktok',
@@ -39,10 +44,11 @@ export async function GET(req: Request) {
             account_id: tokenData.open_id,
             access_token: tokenData.access_token,
             refresh_token: tokenData.refresh_token,
+            account_name: userInfo.data?.user?.display_name,
             token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
         },
         { onConflict: 'platform' }
-    );
+    )
 
     return NextResponse.redirect(`${process.env.APP_URL}/settings/accounts?connected=tiktok`);
 }

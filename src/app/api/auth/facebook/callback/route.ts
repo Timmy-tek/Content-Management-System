@@ -26,6 +26,9 @@ export async function GET(req: Request) {
     const page = pagesData.data?.[0]
     if (!page) return NextResponse.redirect(`${process.env.APP_URL}/settings/accounts?error=no_pages`)
 
+    const pageDetailsRes = await fetch(`https://graph.facebook.com/v21.0/${page.id}?fields=name,followers_count&access_token=${page.access_token}`)
+    const pageDetails = await pageDetailsRes.json()
+
     await supabase.from('platform_connections').upsert(
         {
             platform: 'facebook',
@@ -33,6 +36,8 @@ export async function GET(req: Request) {
             account_id: page.id,
             access_token: page.access_token,
             fb_user_token: longLivedData.access_token,
+            account_name: pageDetails.name,
+            follower_count: pageDetails.followers_count,
             token_expires_at: new Date(Date.now() + (longLivedData.expires_in || 5184000) * 1000).toISOString(),
         },
         { onConflict: 'platform' }
