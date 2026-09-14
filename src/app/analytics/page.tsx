@@ -12,6 +12,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
+import {supabase} from "@/lib/supabase";
 
 interface SyncResult {
   versionId: string;
@@ -121,15 +122,17 @@ export default function AnalyticsPage() {
   }, [selectedPlatform]);
 
   const platforms: (Platform | 'all')[] = ['all', 'instagram', 'linkedin', 'tiktok', 'facebook'];
+  const [growthSnapshots, setGrowthSnapshots] = useState<{ platform: string; followers: number; fetched_at: string }[]>([]);
 
-  // Mock growth trend data points
-  const growthPoints = [
-    { month: 'Oct', reach: 84000, followers: 210000 },
-    { month: 'Nov', reach: 112000, followers: 232000 },
-    { month: 'Dec', reach: 145000, followers: 254000 },
-    { month: 'Jan', reach: 188000, followers: 278000 },
-    { month: 'Feb', reach: 242000, followers: 294100 },
-  ];
+  useEffect(() => {
+    supabase
+        .from('account_snapshots')
+        .select('platform, followers, fetched_at')
+        .order('fetched_at', { ascending: true })
+        .then(({ data }) => setGrowthSnapshots(data || []));
+  }, [syncMessage]); // refetches right after you click Sync
+
+
 
   return (
     <div className="space-y-8 pb-16">
@@ -190,51 +193,44 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="flex items-center gap-4 text-xs font-space font-semibold text-[#555555]">
+<span className="flex items-center gap-1.5">
+  <span className="w-3 h-3 rounded-full bg-[#DD2A7B]" /> Instagram
+</span>
             <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-[#111111]" /> Total Reach
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-[#2E7BD1]" /> Connected Followers
-            </span>
+  <span className="w-3 h-3 rounded-full bg-[#1877F2]" /> Facebook
+</span>
           </div>
         </div>
 
         {/* Visual Line/Bar Chart Representation */}
-        <div className="h-48 pt-4 flex items-end justify-between gap-4 sm:gap-8 px-2">
-          {growthPoints.map((pt, idx) => {
-            const reachHeight = (pt.reach / 250000) * 100;
-            const followerHeight = (pt.followers / 300000) * 100;
+        {growthSnapshots.length < 2 ? (
+            <div className="h-48 flex items-center justify-center text-center px-8">
+              <p className="text-sm text-[#666666] font-inter">
+                Not enough history yet — click "Sync Analytics" a few times over the coming days to start seeing a real growth trend here.
+              </p>
+            </div>
+        ) : (
+            <div className="h-48 pt-4 flex items-end justify-between gap-3 px-2 overflow-x-auto">
+              {growthSnapshots.map((snap, idx) => {
+                const maxFollowers = Math.max(...growthSnapshots.map((s) => s.followers));
+                const height = (snap.followers / maxFollowers) * 100;
+                const color = snap.platform === 'instagram' ? 'bg-[#DD2A7B]' : 'bg-[#1877F2]';
 
-            return (
-              <div key={idx} className="flex-1 flex flex-col items-center gap-2 h-full justify-end group">
-                <div className="w-full flex items-end justify-center gap-1.5 h-full">
-                  {/* Reach Bar */}
-                  <div
-                    className="w-1/2 bg-[#111111] rounded-t-xl group-hover:bg-[#E5F23A] transition-all relative"
-                    style={{ height: `${reachHeight}%` }}
-                  >
-                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#111111] text-white text-[10px] py-0.5 px-1.5 rounded font-mono font-bold whitespace-nowrap z-20">
-                      {pt.reach.toLocaleString()}
-                    </span>
-                  </div>
-                  {/* Follower Bar */}
-                  <div
-                    className="w-1/2 bg-[#2E7BD1] rounded-t-xl opacity-80 group-hover:opacity-100 transition-all relative"
-                    style={{ height: `${followerHeight}%` }}
-                  >
-                    <span className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#2E7BD1] text-white text-[10px] py-0.5 px-1.5 rounded font-mono font-bold whitespace-nowrap z-20">
-                      {pt.followers.toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-
-                <span className="text-xs font-bold font-space text-[#555555]">
-                  {pt.month}
-                </span>
-              </div>
-            );
-          })}
-        </div>
+                return (
+                    <div key={idx} className="flex-1 min-w-[32px] flex flex-col items-center gap-2 h-full justify-end group">
+                      <div className={`w-full rounded-t-xl relative ${color}`} style={{ height: `${height}%` }}>
+            <span className="absolute -top-6 left-1/2 -translate-x-1/2 hidden group-hover:block bg-[#111111] text-white text-[10px] py-0.5 px-1.5 rounded font-mono font-bold whitespace-nowrap z-20">
+              {snap.followers.toLocaleString()}
+            </span>
+                      </div>
+                      <span className="text-[10px] font-bold font-space text-[#555555] whitespace-nowrap">
+            {new Date(snap.fetched_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+          </span>
+                    </div>
+                );
+              })}
+            </div>
+        )}
       </div>
 
       {/* SURFACE 3: "GLASS" — The ONE Performance Agent Insight Panel */}

@@ -90,6 +90,32 @@ export async function POST() {
             }
         }
     }
+    for (const platformName of ['instagram', 'facebook']) {
+        const connection = connections?.find((c) => c.platform === platformName && c.connected)
+        if (!connection) continue
 
+        try {
+            await snapshotFollowerCount(platformName, connection.account_id, connection.access_token)
+            results.push({ platform: platformName, type: 'follower_snapshot', success: true })
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Snapshot failed'
+            results.push({ platform: platformName, type: 'follower_snapshot', success: false, error: message })
+        }
+    }
     return NextResponse.json({ results })
+}
+
+async function snapshotFollowerCount(platform: string, accountId: string, accessToken: string) {
+    const url = platform === 'instagram'
+        ? `https://graph.instagram.com/v21.0/${accountId}?fields=followers_count&access_token=${accessToken}`
+        : `https://graph.facebook.com/v21.0/${accountId}?fields=followers_count&access_token=${accessToken}`
+
+    const res = await fetch(url)
+    const data = await res.json()
+    if (data.error) throw new Error(data.error.message)
+
+    await supabase.from('account_snapshots').insert({
+        platform,
+        followers: data.followers_count,
+    })
 }
