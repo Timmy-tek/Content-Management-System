@@ -11,10 +11,10 @@ import {
   Platform
 } from '@/types';
 import {
-  initialPosts,
   initialConnections,
   initialBrandSettings,
-  initialApiSettings
+  initialApiSettings,
+  initialPosts
 } from '@/lib/mockData';
 
 import { supabase } from '@/lib/supabase';
@@ -95,22 +95,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
     React.useEffect(() => {
         async function loadPosts() {
-            if (!process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL.includes('placeholder')) {
-                setPosts(initialPosts);
+            const { data, error } = await supabase
+                .from('posts')
+                .select('*, platform_versions(*, analytics_snapshots(*))')
+                .order('created_at', { ascending: false });
+
+            if (error || !data || data.length === 0) {
                 return;
             }
-
-            try {
-                const { data, error } = await supabase
-                    .from('posts')
-                    .select('*, platform_versions(*, analytics_snapshots(*))')
-                    .order('created_at', { ascending: false });
-
-                if (error || !data || data.length === 0) {
-                    if (error) console.error('Failed to load posts:', error);
-                    setPosts(initialPosts);
-                    return;
-                }
 
             const mapped: Post[] = data.map((row) => {
                 const versions: Post['versions'] = {};
@@ -169,10 +161,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             });
 
             setPosts(mapped);
-        } catch (e) {
-            console.error(e);
-            setPosts(initialPosts);
-        }
         }
 
         loadPosts();

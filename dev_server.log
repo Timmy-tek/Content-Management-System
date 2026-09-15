@@ -1,0 +1,28 @@
+$ next dev
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 1836ms
+ ○ Compiling / ...
+ ✓ Compiled / in 6s (731 modules)
+ HEAD / 200 in 6464ms
+ ✓ Compiled in 652ms (365 modules)
+ ○ Compiling /posts/[id]/review ...
+ ✓ Compiled /posts/[id]/review in 1532ms (759 modules)
+ GET /posts/cm-001/review 200 in 2794ms
+ GET /posts/cm-001/review 200 in 52ms
+ ○ Compiling /posts ...
+ ✓ Compiled /posts in 674ms (768 modules)
+ GET /posts 200 in 936ms
+ GET /posts/new/review 200 in 90ms
+ GET /posts/post-101/review 200 in 74ms
+ GET /posts/post-101/review 200 in 54ms
+ GET /posts/post-101/review 200 in 51ms
+ ✓ Compiled in 433ms (401 modules)
+ ✓ Compiled in 283ms (401 modules)
+ ✓ Compiled / in 178ms (379 modules)
+ GET / 200 in 454ms
+ ✓ Compiled in 852ms (766 modules)
+ GET / 200 in 113ms
+ GET /posts/post-101/review 200 in 85ms

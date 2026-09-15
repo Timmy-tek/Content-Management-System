@@ -28,7 +28,7 @@ import {
 interface MobileFeedMockupProps {
   platform: Platform;
   caption: string;
-  hashtags: string[];
+  hashtags: string[] | string;
   mediaUrl?: string;
   title?: string;
 }
@@ -40,12 +40,16 @@ export function MobileFeedMockup({
   mediaUrl,
   title = 'Content Engine'
 }: MobileFeedMockupProps) {
-  const formattedHashtags = hashtags.map((h) => (h.startsWith('#') ? h : `#${h}`));
-  const hashtagString = formattedHashtags.join(' ');
-  const defaultImage = mediaUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80';
+  const formattedHashtags = Array.isArray(hashtags)
+    ? hashtags.map((h) => (h.startsWith('#') ? h : `#${h}`)).join(' ')
+    : hashtags;
+
+  const defaultImage =
+    mediaUrl ||
+    'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=800&q=80';
 
   return (
-    <div className="w-full max-w-[360px] mx-auto bg-black rounded-[44px] p-3 shadow-2xl border-[6px] border-[#222222] relative overflow-hidden font-sans">
+    <div className="w-full max-w-[350px] mx-auto bg-black rounded-[44px] p-3 shadow-2xl border-[6px] border-[#222222] relative overflow-hidden font-sans">
       {/* Phone Notch / Dynamic Island */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 w-28 h-4 bg-black rounded-full z-50 flex items-center justify-between px-2">
         <div className="w-2.5 h-2.5 rounded-full bg-[#111] border border-white/10" />
@@ -53,11 +57,13 @@ export function MobileFeedMockup({
       </div>
 
       {/* Screen Frame Container */}
-      <div className="w-full rounded-[34px] overflow-hidden bg-white text-black flex flex-col h-[640px] relative select-none">
+      <div className="w-full rounded-[34px] overflow-hidden bg-white text-black flex flex-col h-[620px] relative select-none">
         {/* Status Bar */}
-        <div className={`px-6 pt-3 pb-1 flex justify-between items-center text-[11px] font-semibold z-40 ${
-          platform === 'tiktok' ? 'bg-black text-white' : 'bg-white text-black'
-        }`}>
+        <div
+          className={`px-6 pt-3 pb-1 flex justify-between items-center text-[11px] font-semibold z-40 ${
+            platform === 'tiktok' ? 'bg-black text-white' : 'bg-white text-black'
+          }`}
+        >
           <span>9:41</span>
           <div className="flex items-center gap-1.5">
             <span className="text-[10px]">5G</span>
@@ -72,7 +78,7 @@ export function MobileFeedMockup({
           {platform === 'instagram' && (
             <InstagramMockup
               caption={caption}
-              hashtags={hashtagString}
+              hashtags={formattedHashtags}
               mediaUrl={defaultImage}
             />
           )}
@@ -80,7 +86,7 @@ export function MobileFeedMockup({
           {platform === 'facebook' && (
             <FacebookMockup
               caption={caption}
-              hashtags={hashtagString}
+              hashtags={formattedHashtags}
               mediaUrl={defaultImage}
               title={title}
             />
@@ -89,7 +95,7 @@ export function MobileFeedMockup({
           {platform === 'linkedin' && (
             <LinkedInMockup
               caption={caption}
-              hashtags={hashtagString}
+              hashtags={formattedHashtags}
               mediaUrl={defaultImage}
               title={title}
             />
@@ -98,7 +104,7 @@ export function MobileFeedMockup({
           {platform === 'tiktok' && (
             <TikTokMockup
               caption={caption}
-              hashtags={hashtagString}
+              hashtags={formattedHashtags}
               mediaUrl={defaultImage}
             />
           )}
