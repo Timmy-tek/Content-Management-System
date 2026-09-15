@@ -13,7 +13,8 @@ import {
 import {
   initialConnections,
   initialBrandSettings,
-  initialApiSettings
+  initialApiSettings,
+  initialPosts
 } from '@/lib/mockData';
 
 import { supabase } from '@/lib/supabase';
@@ -87,8 +88,7 @@ interface AppContextType {
 
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  // const [posts, setPosts] = useState<Post[]>(initialPosts);
-    const [posts, setPosts] = useState<Post[]>([]);
+  const [posts, setPosts] = useState<Post[]>(initialPosts);
   const [connections, setConnections] = useState<PlatformConnection[]>(initialConnections);
   const [brandSettings, setBrandSettings] = useState<BrandSettings>(initialBrandSettings);
   const [apiSettings, setApiSettings] = useState<ApiSettings>(initialApiSettings);
@@ -100,8 +100,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 .select('*, platform_versions(*, analytics_snapshots(*))')
                 .order('created_at', { ascending: false });
 
-            if (error) {
-                console.error('Failed to load posts:', error);
+            if (error || !data || data.length === 0) {
                 return;
             }
 

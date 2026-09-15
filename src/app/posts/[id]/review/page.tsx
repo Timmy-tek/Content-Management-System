@@ -8,6 +8,7 @@ import { BranchingPipeline } from '@/components/BranchingPipeline';
 import { ScrubberBar } from '@/components/ScrubberBar';
 import { PlatformBadge } from '@/components/PlatformBadge';
 import { StatusCapsule } from '@/components/StatusCapsule';
+import { MobileFeedMockup } from '@/components/MobileFeedMockup';
 import {
   Check,
   RotateCw,
@@ -247,45 +248,31 @@ export default function ReviewPage() {
             </div>
 
             {/* Right Column: Platform Feed Preview Box */}
-            <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-black/10 flex flex-col justify-between space-y-4">
-              <div>
+            <div className="lg:col-span-5 bg-white rounded-2xl p-5 border border-black/10 flex flex-col items-center justify-between space-y-4">
+              <div className="w-full">
                 <div className="flex items-center justify-between mb-4 border-b border-black/5 pb-2">
                   <span className="text-[10px] font-bold uppercase font-space text-[#777777] flex items-center gap-1">
                     <Eye className="w-3.5 h-3.5" />
                     Live Mobile Feed Mockup
                   </span>
-                  <span className="text-[10px] bg-[#F2F1EF] px-2 py-0.5 rounded-full font-mono text-gray-600">
-                    {currentVersion.previewType}
+                  <span className="text-[10px] bg-[#F2F1EF] px-2 py-0.5 rounded-full font-mono text-gray-600 capitalize">
+                    {activePlatform} • {currentVersion.previewType}
                   </span>
                 </div>
 
-                {/* Simulated Platform Card Mock */}
-                <div className="bg-[#F8F8F7] rounded-xl p-4 border border-black/5 space-y-3 font-inter text-xs">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-7 h-7 rounded-full bg-[#111111] text-white flex items-center justify-center font-bold text-[10px]">
-                      CE
-                    </div>
-                    <div>
-                      <span className="font-bold text-[#111111] text-xs block leading-tight">
-                        Content Engine Studio
-                      </span>
-                      <span className="text-[10px] text-gray-500">Sponsored • 1m ago</span>
-                    </div>
-                  </div>
-
-                  <p className="text-[#222222] leading-relaxed whitespace-pre-wrap text-[11px] line-clamp-6">
-                    {currentVersion.caption}
-                  </p>
-
-                  <div className="text-[10px] text-[#2E7BD1] font-semibold">
-                    {currentVersion.hashtags.join(' ')}
-                  </div>
+                <div className="py-2 flex justify-center">
+                  <MobileFeedMockup
+                    platform={activePlatform}
+                    caption={currentVersion.caption}
+                    hashtags={currentVersion.hashtags}
+                    title={post.title}
+                  />
                 </div>
               </div>
 
-              <div className="text-center pt-2">
+              <div className="text-center pt-2 border-t border-black/5 w-full">
                 <span className="text-[11px] text-gray-500 font-inter">
-                  Human review ensures tone safety before publishing.
+                  Live interactive preview in native platform frame.
                 </span>
               </div>
             </div>
