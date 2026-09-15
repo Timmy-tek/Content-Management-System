@@ -29,25 +29,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${interTight.variable}`}>
-      <body className="font-inter antialiased min-h-screen text-[#111111] bg-fixed selection:bg-[#E5F23A] selection:text-[#111111]">
-        {/* Surface 1 "Mesh" Gradient Background Canvas */}
-        <div
-          className="fixed inset-0 -z-10 pointer-events-none"
-          style={{
-            background: 'linear-gradient(135deg, #B8F0D6 0%, #C7C4F0 100%)',
-          }}
-        />
-
+      <body className="font-inter antialiased min-h-screen text-[#111111] bg-[#F4F5F7] selection:bg-[#E5F23A] selection:text-[#111111]">
         <AppProvider>
-          {/* Left Vertical Navigation Sidebar */}
-          <SidebarNav />
+          {/* Top Contextual Header Toolbar (Full Width across top) */}
+          <HeaderToolbar />
 
-          {/* Right Main Content Area with Header */}
-          <div className="sm:pl-20 md:pl-24 transition-all duration-300">
-            {/* Top Contextual Header Toolbar */}
-            <HeaderToolbar />
+          {/* Main Content Area & Floating Sidebar beneath Top Bar */}
+          <div className="relative sm:pl-20 transition-all duration-300 pt-3">
+            {/* Left Vertical Navigation Sidebar */}
+            <SidebarNav />
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 min-h-[calc(100vh-6rem)]">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12 min-h-[calc(100vh-5rem)]">
               {children}
             </main>
           </div>
