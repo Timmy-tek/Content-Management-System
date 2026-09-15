@@ -29,6 +29,7 @@ interface PlatformConnectionRow {
     id: string;
     platform: string;
     account_name: string | null;
+    handle: string | null;
     follower_count: number | null;
     connected: boolean;
     access_token: string | null;
@@ -208,6 +209,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                                 ? 'expiring'
                                 : 'connected',
                         accountName: dbConn.account_name || mockConn.accountName,
+                        handle: dbConn.handle || mockConn.handle,
                         followers: dbConn.follower_count ?? mockConn.followers,
                         accountId: dbConn.account_id ?? undefined,
                         accessToken: dbConn.access_token ?? undefined,
@@ -470,6 +472,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     connected: updates.connected,
                     account_id: updates.accountId,
                     account_name: updates.accountName,
+                    handle: updates.handle,
                     follower_count: updates.followers,
                     access_token: updates.accessToken,
                     token_expires_at: updates.tokenExpiresAt && updates.tokenExpiresAt !== 'Disconnected'

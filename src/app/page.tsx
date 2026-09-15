@@ -1,7 +1,7 @@
 'use client';
 
 // import React from 'react';
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { StatusCapsule } from '@/components/StatusCapsule';
@@ -21,16 +21,29 @@ import {
 export default function DashboardPage() {
   const { posts, connections } = useApp();
 
-  // 3. Use useEffect to run the async logic and log the data
-  useEffect(() => {
-    async function checkConnection() {
-      const { data, error } = await supabase.from('posts').select('*');
-      console.log('Supabase Data:', data);
-      console.log('Supabase Error:', error);
-    }
+// remove the entire debug useEffect block entirely
 
-    checkConnection();
-  }, []); // The empty array [] means this runs only once when the page loads
+  const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const postsThisWeek = posts.filter((p) => new Date(p.createdAt) > oneWeekAgo).length;
+  const pendingApproval = posts.filter((p) => p.status === 'review').length;
+
+  const [followerTrend, setFollowerTrend] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase
+        .from('account_snapshots')
+        .select('followers, fetched_at')
+        .order('fetched_at', { ascending: true })
+        .then(({ data }) => {
+          if (!data || data.length < 2) return;
+          const first = data[0].followers;
+          const last = data[data.length - 1].followers;
+          if (first > 0) {
+            const pct = (((last - first) / first) * 100).toFixed(1);
+            setFollowerTrend(`${last >= first ? '+' : ''}${pct}% since tracking began`);
+          }
+        });
+  }, []);
 
     // Calculate Hero KPIs
   const totalFollowers = connections.reduce((acc, c) => acc + c.followers, 0);
@@ -54,10 +67,9 @@ export default function DashboardPage() {
     ? (totalEngagementSum / publishedVersionCount).toFixed(1)
     : '5.4';
 
-  const postsThisWeek = posts.length;
 
   return (
-    <div className="space-[#E2E8F0] space-y-8 pb-12">
+      <div className="space-y-8 pb-12">
       {/* Top Welcome / Header Banner */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -83,21 +95,19 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {/* KPI 1 */}
         <div className="bg-white rounded-3xl p-6 shadow-lg shadow-black/5 border border-black/5 flex flex-col justify-between hover:shadow-xl transition-shadow">
-          <div className="flex items-center justify-between text-[#555555]">
-            <span className="text-xs font-semibold tracking-wide uppercase font-inter">
-              Total Audience
-            </span>
-            <Users className="w-4 h-4 text-[#111111]/40" />
-          </div>
+
           <div className="mt-4 mb-2">
             <span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
               {totalFollowers.toLocaleString()}
             </span>
           </div>
-          <div className="flex items-center gap-1.5 text-xs text-[#0B4F07] font-medium mt-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+12.4% vs last month</span>
-          </div>
+
+          {followerTrend && (
+              <div className="flex items-center gap-1.5 text-xs text-[#0B4F07] font-medium mt-1">
+                <TrendingUp className="w-3.5 h-3.5" />
+                <span>{followerTrend}</span>
+              </div>
+          )}
         </div>
 
         {/* KPI 2 */}
@@ -110,12 +120,8 @@ export default function DashboardPage() {
           </div>
           <div className="mt-4 mb-2">
             <span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
-              {(totalReach || 220200).toLocaleString()}
+              {totalReach.toLocaleString()}
             </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-[#0B4F07] font-medium mt-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+28.9% campaign velocity</span>
           </div>
         </div>
 
@@ -128,12 +134,12 @@ export default function DashboardPage() {
             <FileText className="w-4 h-4 text-[#111111]/40" />
           </div>
           <div className="mt-4 mb-2">
-            <span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
-              {postsThisWeek}
-            </span>
+<span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
+  {postsThisWeek}
+</span>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-[#555555] font-medium mt-1">
-            <span>4 pending approval in pipeline</span>
+            <span>{pendingApproval} pending approval in pipeline</span>
           </div>
         </div>
 
@@ -149,10 +155,6 @@ export default function DashboardPage() {
             <span className="text-4xl sm:text-5xl font-bold font-space tabular-nums text-[#111111] tracking-tight">
               {avgEngagement}%
             </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-xs text-[#0B4F07] font-medium mt-1">
-            <TrendingUp className="w-3.5 h-3.5" />
-            <span>+1.8% benchmark industry avg</span>
           </div>
         </div>
       </div>

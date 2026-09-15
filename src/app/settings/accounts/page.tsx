@@ -47,12 +47,14 @@ export default function ConnectedAccountsPage() {
 
   const handleSaveToken = async (platform: Platform) => {
     let accountName = '';
+    let handle: string | undefined;
     let followers = 0;
 
     try {
-      const res = await fetch(`https://graph.instagram.com/v21.0/${accountIdInput}?fields=username,followers_count&access_token=${tokenInput}`);
+      const res = await fetch(`https://graph.instagram.com/v21.0/${accountIdInput}?fields=username,name,followers_count&access_token=${tokenInput}`);
       const data = await res.json();
-      accountName = data.username || '';
+      accountName = data.name || data.username || '';
+      handle = data.username ? `@${data.username}` : undefined;
       followers = data.followers_count || 0;
     } catch {
       // fall through — save the connection even if this lookup fails
@@ -64,6 +66,7 @@ export default function ConnectedAccountsPage() {
       accessToken: tokenInput,
       accountId: accountIdInput,
       accountName,
+      handle,
       followers,
       tokenExpiresAt: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
     });

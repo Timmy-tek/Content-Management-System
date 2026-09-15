@@ -33,6 +33,7 @@ export async function GET(req: Request) {
             account_id: memberUrn,
             account_name: payload.name,
             access_token: tokenData.access_token,
+            handle: payload.email ? payload.email.split('@')[0] : undefined,
             token_expires_at: new Date(Date.now() + tokenData.expires_in * 1000).toISOString(),
         },
         { onConflict: 'platform' }
