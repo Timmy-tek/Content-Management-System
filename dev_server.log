@@ -26,3 +26,4 @@ $ next dev
  ✓ Compiled in 852ms (766 modules)
  GET / 200 in 113ms
  GET /posts/post-101/review 200 in 85ms
+ ✓ Compiled in 7.3s (766 modules)
