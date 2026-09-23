@@ -10,7 +10,6 @@ import { supabase } from '@/lib/supabase';
 import {
   Plus,
   TrendingUp,
-  Users,
   Radio,
   FileText,
   ArrowUpRight,
