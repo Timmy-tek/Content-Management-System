@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { StatusCapsule } from '@/components/StatusCapsule';
 import { PlatformBadge } from '@/components/PlatformBadge';
-import { supabase } from '@/lib/supabase';
+import { supabaseBrowser as supabase } from '@/lib/supabase-browser';
 import {
   Plus,
   TrendingUp,
@@ -187,10 +187,10 @@ export default function DashboardPage() {
                 <PlatformBadge platform={conn.platform} size="md" />
                 <div>
                   <h4 className="text-xs font-bold font-space text-[#111111] leading-tight">
-                    {conn.accountName}
+                    {conn.accountName || 'Not connected'}
                   </h4>
                   <span className="text-[11px] text-[#666666] font-inter block">
-                    {conn.followers.toLocaleString()} followers
+                       {conn.connected ? `${conn.followers.toLocaleString()} followers` : 'Set up in Manage Accounts'}
                   </span>
                 </div>
               </div>

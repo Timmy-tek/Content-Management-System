@@ -70,11 +70,10 @@ export interface PlatformConnection {
   accountName: string;
   handle: string;
   followers: number;
-  avatar: string;
+  avatar?: string;
   tokenExpiresAt: string; // ISO string or relative time text
   status: 'connected' | 'expiring' | 'disconnected';
   accountId?: string;
-  accessToken?: string;
 }
 
 export interface BrandSettings {

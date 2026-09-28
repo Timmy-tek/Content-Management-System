@@ -12,7 +12,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { RefreshCw } from 'lucide-react';
-import {supabase} from "@/lib/supabase";
+import { supabaseBrowser as supabase } from '@/lib/supabase-browser';
 
 interface SyncResult {
   versionId: string;

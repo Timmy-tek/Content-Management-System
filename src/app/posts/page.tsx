@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
+import { OwnerAvatar } from '@/components/OwnerAvatar';
 import Link from 'next/link';
 import { useApp } from '@/context/AppContext';
 import { Platform, PostStatus } from '@/types';
@@ -290,13 +290,7 @@ export default function PostLibraryPage() {
                     </td>
                     <td className="py-4 px-4">
                       <div className="flex items-center gap-2">
-                        <Image
-                          src={post.owner.avatar}
-                          alt={post.owner.name}
-                          width={20}
-                          height={20}
-                          className="w-5 h-5 rounded-full object-cover"
-                        />
+                        <OwnerAvatar name={post.owner.name} size={20} />
                         <span className="text-xs text-[#222222]">{post.owner.name}</span>
                       </div>
                     </td>
