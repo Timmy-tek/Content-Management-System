@@ -1,15 +1,19 @@
-import { supabase } from '@/lib/supabase'
-import { analyzeContent, adaptForPlatform } from '@/lib/ai'
 import { NextResponse } from 'next/server'
+import { requireUser } from '@/lib/auth'
+import { analyzeContent, adaptForPlatform } from '@/lib/ai'
 
 export async function POST(req: Request) {
     try {
+        const { supabase, user } = await requireUser()
+        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
         const { platformVersionId } = await req.json()
 
         const { data: version, error: versionError } = await supabase
             .from('platform_versions')
             .select('*, posts(*)')
             .eq('id', platformVersionId)
+            .eq('user_id', user.id)
             .single()
         if (versionError) throw versionError
 

@@ -315,7 +315,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const approvePlatformVersion: AppContextType['approvePlatformVersion'] = (postId, platform) => {
         updatePlatformVersion(postId, platform, { approved: true, status: 'approved' });
 
-        syncPostStatus(postId);
+        syncPostStatus(supabase, postId);
 
         const version = posts.find((p) => p.id === postId)?.versions[platform];
         if (version) {
@@ -362,7 +362,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             supabase.from('posts').update({ status: 'approved' }).eq('id', postId)
                 .then(({ error }) => { if (error) console.error('Failed to persist post status:', error); });
         }
-        syncPostStatus(postId);
+        syncPostStatus(supabase, postId);
     };
 
     const publishPostNow: AppContextType['publishPostNow'] = async (postId, platformsOverride) => {
@@ -418,7 +418,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
         }
 
-        await syncPostStatus(postId);
+        await syncPostStatus(supabase, postId);
 
         return results;
     };

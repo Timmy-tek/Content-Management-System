@@ -4,7 +4,11 @@ import sharp from 'sharp'
 export async function GET(req: Request) {
     const url = new URL(req.url)
     const src = url.searchParams.get('src')
-    if (!src) return NextResponse.json({ error: 'Missing src' }, { status: 400 })
+
+    const allowedPrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/post-images/`
+    if (!src || !src.startsWith(allowedPrefix)) {
+        return NextResponse.json({ error: 'Invalid src' }, { status: 400 })
+    }
 
     const imageRes = await fetch(src)
     if (!imageRes.ok) return NextResponse.json({ error: 'Failed to fetch source image' }, { status: 502 })

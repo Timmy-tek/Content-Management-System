@@ -1,16 +1,20 @@
-import { supabase } from '@/lib/supabase'
 import { NextResponse } from 'next/server'
+import { requireUser } from '@/lib/auth'
 import { analyzeContent, adaptForPlatform } from '@/lib/ai'
 
 export async function POST(req: Request) {
     try {
-        const body = await req.json()
-        const { title, contentType, sourceText, primaryGoal, targetAudience, platforms, imageUrl  } = body
+        const { supabase, user } = await requireUser()
+        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-        // 1. save the post as pending_review
+        const body = await req.json()
+        const { title, contentType, sourceText, primaryGoal, targetAudience, platforms, imageUrl } = body
+
+        // 1. save the post, owned by this user
         const { data: post, error: postError } = await supabase
             .from('posts')
             .insert({
+                user_id: user.id,
                 title,
                 content_type: contentType,
                 source_text: sourceText,
@@ -36,6 +40,7 @@ export async function POST(req: Request) {
             const { data: version, error: versionError } = await supabase
                 .from('platform_versions')
                 .insert({
+                    user_id: user.id,
                     post_id: post.id,
                     platform,
                     caption: adapted.caption,

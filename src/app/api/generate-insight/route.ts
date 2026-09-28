@@ -1,4 +1,4 @@
-import { supabase } from '@/lib/supabase'
+import { requireUser } from '@/lib/auth'
 import { generatePerformanceInsight } from '@/lib/ai'
 import { NextResponse } from 'next/server'
 
@@ -24,11 +24,15 @@ interface PlatformVersionWithRelations {
 
 export async function POST(req: Request) {
     try {
+        const { supabase, user } = await requireUser()
+        if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
         const { platform } = await req.json()
 
         const { data: versions } = await supabase
             .from('platform_versions')
             .select('*, posts(title), analytics_snapshots(*)')
+            .eq('user_id', user.id)
             .eq('platform', platform)
             .eq('status', 'published')
 

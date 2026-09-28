@@ -1,4 +1,6 @@
-import { supabase } from '@/lib/supabase'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { requireUser } from '@/lib/auth'
+import { createAdminClient } from '@/lib/supabase-admin'
 import { NextResponse } from 'next/server'
 
 interface InstagramInsightMetric {
@@ -61,14 +63,23 @@ async function fetchFacebookInsights(postId: string, accessToken: string) {
 }
 
 
-
 export async function POST() {
-    const { data: connections } = await supabase.from('platform_connections').select('*')
-    const results = []
+    const { supabase, user } = await requireUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+    // Tokens are only readable with the service role, so we scope by user_id by hand
+    const admin = createAdminClient()
+    const { data: connections } = await admin
+        .from('platform_connections')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('connected', true)
+
+    const results: SyncResultEntry[] = []
 
     for (const platformName of ['instagram', 'facebook']) {
-        const connection = connections?.find((c) => c.platform === platformName && c.connected)
-        if (!connection) continue
+        const connection = connections?.find((c) => c.platform === platformName)
+        if (!connection?.access_token) continue
 
         const { data: publishedVersions } = await supabase
             .from('platform_versions')
@@ -83,13 +94,15 @@ export async function POST() {
                     ? await fetchInstagramInsights(version.platform_post_id, connection.access_token)
                     : await fetchFacebookInsights(version.platform_post_id, connection.access_token)
 
-                await supabase.from('analytics_snapshots').insert({
+                const { error } = await supabase.from('analytics_snapshots').insert({
+                    user_id: user.id,
                     platform_version_id: version.id,
                     reach: insights.reach,
                     likes: insights.likes,
                     comments: insights.comments,
                     saves: insights.saves,
                 })
+                if (error) throw new Error(error.message)
 
                 results.push({ versionId: version.id, success: true })
             } catch (err) {
@@ -98,25 +111,33 @@ export async function POST() {
             }
         }
     }
+
     for (const platformName of ['instagram', 'facebook']) {
-        const connection = connections?.find((c) => c.platform === platformName && c.connected)
-        if (!connection) continue
+        const connection = connections?.find((c) => c.platform === platformName)
+        if (!connection?.access_token) continue
 
         try {
-            await snapshotFollowerCount(platformName, connection.account_id, connection.access_token)
+            await snapshotFollowerCount(supabase, user.id, platformName, connection.account_id, connection.access_token)
             results.push({ platform: platformName, type: 'follower_snapshot', success: true })
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Snapshot failed'
             results.push({ platform: platformName, type: 'follower_snapshot', success: false, error: message })
         }
     }
-    const postResults = (results as SyncResultEntry[]).filter((r) => 'versionId' in r);
-    const snapshotResults = (results as SyncResultEntry[]).filter((r) => r.type === 'follower_snapshot');
 
-    return NextResponse.json({ postResults, snapshotResults });
+    const postResults = results.filter((r) => 'versionId' in r)
+    const snapshotResults = results.filter((r) => r.type === 'follower_snapshot')
+
+    return NextResponse.json({ postResults, snapshotResults })
 }
 
-async function snapshotFollowerCount(platform: string, accountId: string, accessToken: string) {
+async function snapshotFollowerCount(
+    supabase: SupabaseClient,
+    userId: string,
+    platform: string,
+    accountId: string,
+    accessToken: string
+) {
     const url = platform === 'instagram'
         ? `https://graph.instagram.com/v21.0/${accountId}?fields=followers_count&access_token=${accessToken}`
         : `https://graph.facebook.com/v21.0/${accountId}?fields=followers_count&access_token=${accessToken}`
@@ -125,8 +146,10 @@ async function snapshotFollowerCount(platform: string, accountId: string, access
     const data = await res.json()
     if (data.error) throw new Error(data.error.message)
 
-    await supabase.from('account_snapshots').insert({
+    const { error } = await supabase.from('account_snapshots').insert({
+        user_id: userId,
         platform,
         followers: data.followers_count,
     })
+    if (error) throw new Error(error.message)
 }
