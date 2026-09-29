@@ -1,4 +1,4 @@
-import { Post, PlatformConnection, BrandSettings, ApiSettings, PerformanceInsight } from '@/types';
+import { PlatformConnection, BrandSettings, ApiSettings, PerformanceInsight } from '@/types';
 
 export const initialConnections: PlatformConnection[] = [
   {
