@@ -29,6 +29,12 @@ export interface AnalyticsSnapshot {
   sparkline: number[]; // e.g. 7 data points for mini performance graph
 }
 
+export interface PostMediaItem {
+  id: string;
+  url: string;
+  position: number;
+}
+
 export interface PlatformVersion {
   id: string;
   postId: string;
@@ -40,7 +46,7 @@ export interface PlatformVersion {
   publishedAt?: string;
   platformPostId?: string;
   metrics?: AnalyticsSnapshot;
-  mediaUrl?: string;
+  media: PostMediaItem[];
   previewType?: 'carousel' | 'text' | 'reels' | 'feed';
   approved: boolean;
 }
@@ -61,7 +67,7 @@ export interface Post {
   versions: Partial<Record<Platform, PlatformVersion>>;
   goal?: string;
   audience?: string;
-  imageUrl?: string;
+  postMedia: PostMediaItem[];
 }
 
 export interface PlatformConnection {

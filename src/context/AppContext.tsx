@@ -7,6 +7,7 @@ import {
     PlatformVersion,
     PlatformVersionStatus,
     PlatformConnection,
+    PostMediaItem,
     BrandSettings,
     ApiSettings,
     Platform
@@ -21,7 +22,6 @@ export interface PublishResult {
     error?: string;
 }
 
-// Shape returned by /api/connections (no tokens, ever)
 interface ConnectionApiRow {
     platform: string;
     account_name: string | null;
@@ -41,6 +41,17 @@ interface AnalyticsSnapshotRow {
     fetched_at: string;
 }
 
+interface PostMediaRow {
+    id: string;
+    url: string;
+    position: number;
+}
+
+interface PlatformVersionMediaRow {
+    position: number;
+    post_media: { id: string; url: string } | null;
+}
+
 interface PlatformVersionRow {
     id: string;
     post_id: string;
@@ -51,6 +62,7 @@ interface PlatformVersionRow {
     published_at: string;
     platform_post_id: string;
     analytics_snapshots: AnalyticsSnapshotRow[];
+    platform_version_media: PlatformVersionMediaRow[];
     scheduled_at: string | null;
 }
 
@@ -81,6 +93,12 @@ const ownerFromUser = (user: User | null): Post['owner'] => {
     return { name, avatar: '', role: '' };
 };
 
+const mediaFromVersionRow = (row: PlatformVersionMediaRow[] | undefined): PostMediaItem[] =>
+    (row || [])
+        .filter((m) => m.post_media)
+        .sort((a, b) => a.position - b.position)
+        .map((m) => ({ id: m.post_media!.id, url: m.post_media!.url, position: m.position }));
+
 interface AppContextType {
     posts: Post[];
     connections: PlatformConnection[];
@@ -88,7 +106,7 @@ interface AppContextType {
     reloadConnections: () => Promise<void>;
     brandSettings: BrandSettings;
     apiSettings: ApiSettings;
-    addPost: (postData: { title: string; contentType: Post['contentType']; sourceContent: string; goal?: string; audience?: string; selectedPlatforms: Platform[]; imageUrl?: string }) => Promise<string>;
+    addPost: (postData: { title: string; contentType: Post['contentType']; sourceContent: string; goal?: string; audience?: string; selectedPlatforms: Platform[]; imageUrls?: string[] }) => Promise<string>;
     updatePlatformVersion: (postId: string, platform: Platform, updates: Partial<PlatformVersion>) => void;
     approvePlatformVersion: (postId: string, platform: Platform) => void;
     approveAllPlatformVersions: (postId: string) => void;
@@ -97,6 +115,8 @@ interface AppContextType {
     updateBrandSettings: (settings: Partial<BrandSettings>) => void;
     updateApiSettings: (settings: Partial<ApiSettings>) => void;
     deletePost: (postId: string) => void;
+    uploadMediaToVersion: (postId: string, platform: Platform, file: File) => Promise<void>;
+    setVersionMedia: (postId: string, platform: Platform, postMediaIds: string[]) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -109,8 +129,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const [brandSettings, setBrandSettings] = useState<BrandSettings>(initialBrandSettings);
     const [apiSettings, setApiSettings] = useState<ApiSettings>(initialApiSettings);
 
-    // NOTE: the queries below deliberately have no "where user_id = ..." filter.
-    // Row Level Security in the database does the filtering, which is what the two-account test verifies.
     useEffect(() => {
         async function loadPosts() {
             const {
@@ -121,7 +139,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
             const { data, error } = await supabase
                 .from('posts')
-                .select('*, platform_versions(*, analytics_snapshots(*))')
+                .select('*, post_media(*), platform_versions(*, analytics_snapshots(*), platform_version_media(position, post_media(id,url)))')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -130,6 +148,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             }
 
             const mapped: Post[] = data.map((row) => {
+                const postMedia: PostMediaItem[] = ((row.post_media as PostMediaRow[]) || [])
+                    .sort((a, b) => a.position - b.position)
+                    .map((m) => ({ id: m.id, url: m.url, position: m.position }));
+
                 const versions: Post['versions'] = {};
                 (row.platform_versions || []).forEach((v: PlatformVersionRow) => {
                     const snapshots: AnalyticsSnapshotRow[] = v.analytics_snapshots || [];
@@ -146,6 +168,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                         status: v.status,
                         approved: v.status !== 'review',
                         previewType: previewTypeFor(v.platform as Platform),
+                        media: mediaFromVersionRow(v.platform_version_media),
                         scheduledAt: v.scheduled_at ?? undefined,
                         publishedAt: v.published_at,
                         platformPostId: v.platform_post_id,
@@ -172,7 +195,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                     title: row.title,
                     contentType: row.content_type,
                     sourceContent: row.source_text,
-                    imageUrl: row.image_url,
+                    postMedia,
                     status: row.status,
                     createdAt: row.created_at,
                     goal: row.primary_goal,
@@ -225,7 +248,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         reloadConnections();
     }, [reloadConnections]);
 
-    // Recomputes a post's overall status in the database, then mirrors it on screen
     const refreshPostStatus = async (postId: string) => {
         const overall = await syncPostStatus(supabase, postId);
         if (overall) {
@@ -240,7 +262,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                                                           goal,
                                                           audience,
                                                           selectedPlatforms,
-                                                          imageUrl,
+                                                          imageUrls,
                                                       }) => {
         const res = await fetch('/api/generate', {
             method: 'POST',
@@ -252,7 +274,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 primaryGoal: goal,
                 targetAudience: audience,
                 platforms: selectedPlatforms,
-                imageUrl,
+                imageUrls,
             }),
         });
 
@@ -261,10 +283,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             throw new Error(errBody.error || 'Failed to generate post');
         }
 
-        const { post: dbPost, platformVersions: dbVersions } = await res.json();
+        const { post: dbPost, postMedia: dbPostMedia, platformVersions: dbVersions } = await res.json();
+
+        const postMedia: PostMediaItem[] = (dbPostMedia || []).map(
+            (m: { id: string; url: string; position: number }) => ({ id: m.id, url: m.url, position: m.position })
+        );
 
         const versions: Post['versions'] = {};
-        dbVersions.forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus }) => {
+        dbVersions.forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus; media: { id: string; url: string; position: number }[] }) => {
             versions[v.platform as Platform] = {
                 id: v.id,
                 postId: v.post_id,
@@ -274,6 +300,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 status: v.status,
                 approved: false,
                 previewType: previewTypeFor(v.platform as Platform),
+                media: (v.media || []).map((m, index) => ({ id: m.id, url: m.url, position: index })),
             };
         });
 
@@ -282,7 +309,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             title: dbPost.title,
             contentType: dbPost.content_type,
             sourceContent: dbPost.source_text,
-            imageUrl: dbPost.image_url,
+            postMedia,
             status: dbPost.status,
             createdAt: dbPost.created_at,
             goal: dbPost.primary_goal,
@@ -314,7 +341,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const approvePlatformVersion: AppContextType['approvePlatformVersion'] = async (postId, platform) => {
         const version = posts.find((p) => p.id === postId)?.versions[platform];
         if (!version) return;
-        // never demote something that is already queued or live
         if (version.status === 'published' || version.status === 'scheduled') return;
 
         updatePlatformVersion(postId, platform, { approved: true, status: 'approved' });
@@ -474,13 +500,77 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             .then(({ error }) => {
                 if (!error) return;
                 console.error('Failed to delete post:', error);
-                // put it back so the screen doesn't lie about what's in the database
                 if (removed) {
                     setPosts((prev) =>
                         [...prev, removed].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
                     );
                 }
             });
+    };
+
+    const uploadMediaToVersion: AppContextType['uploadMediaToVersion'] = async (postId, platform, file) => {
+        const version = posts.find((p) => p.id === postId)?.versions[platform];
+        if (!version) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('platformVersionId', version.id);
+
+        const res = await fetch('/api/post-media', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+
+        const newItem: PostMediaItem = data.media;
+
+        setPosts((prev) =>
+            prev.map((p) => {
+                if (p.id !== postId) return p;
+                const currentVer = p.versions[platform];
+                if (!currentVer) return p;
+                return {
+                    ...p,
+                    postMedia: [...p.postMedia, newItem],
+                    versions: { ...p.versions, [platform]: { ...currentVer, media: [...currentVer.media, newItem] } },
+                };
+            })
+        );
+    };
+
+    const setVersionMedia: AppContextType['setVersionMedia'] = async (postId, platform, postMediaIds) => {
+        const post = posts.find((p) => p.id === postId);
+        const version = post?.versions[platform];
+        if (!post || !version) return;
+
+        const nextMedia = postMediaIds
+            .map((id) => post.postMedia.find((m) => m.id === id))
+            .filter((m): m is PostMediaItem => !!m)
+            .map((m, index) => ({ ...m, position: index }));
+
+        setPosts((prev) =>
+            prev.map((p) => {
+                if (p.id !== postId) return p;
+                const currentVer = p.versions[platform];
+                if (!currentVer) return p;
+                return { ...p, versions: { ...p.versions, [platform]: { ...currentVer, media: nextMedia } } };
+            })
+        );
+
+        const res = await fetch('/api/platform-version-media', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platformVersionId: version.id, postMediaIds }),
+        });
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            // roll back the optimistic update if the server rejected it (e.g. cap exceeded)
+            setPosts((prev) =>
+                prev.map((p) => {
+                    if (p.id !== postId) return p;
+                    return { ...p, versions: { ...p.versions, [platform]: version } };
+                })
+            );
+            throw new Error(data.error || 'Failed to update images');
+        }
     };
 
     return (
@@ -501,6 +591,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 updateBrandSettings,
                 updateApiSettings,
                 deletePost,
+                uploadMediaToVersion,
+                setVersionMedia,
             }}
         >
             {children}

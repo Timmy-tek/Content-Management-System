@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { syncPostStatus } from '@/lib/postStatus'
+import { PLATFORM_IMAGE_LIMITS } from '@/lib/mediaLimits'
+import type { Platform } from '@/types'
 import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok } from '@/lib/publishers'
 
 const MAX_ATTEMPTS = 3
@@ -18,7 +20,7 @@ export async function GET(req: Request) {
 
     const { data: dueVersions } = await admin
         .from('platform_versions')
-        .select('*, posts(image_url)')
+        .select('*, platform_version_media(position, post_media(url))')
         .eq('status', 'scheduled')
         .lte('scheduled_at', nowIso)
         .or(`claimed_at.is.null,claimed_at.lt.${staleCutoff}`)
@@ -26,8 +28,6 @@ export async function GET(req: Request) {
     const results = []
 
     for (const version of dueVersions || []) {
-        // Atomic claim: this UPDATE's WHERE clause is checked and applied as one step by
-        // Postgres, so if two cron runs overlap, only one of them gets a row back here.
         const { data: claimed } = await admin
             .from('platform_versions')
             .update({ claimed_at: nowIso })
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
             .select()
             .maybeSingle()
 
-        if (!claimed) continue // another run claimed it first
+        if (!claimed) continue
 
         try {
             const { data: connection } = await admin
@@ -54,26 +54,26 @@ export async function GET(req: Request) {
                 ? `${version.caption}\n\n${version.hashtags.join(' ')}`
                 : version.caption
 
-            const imageUrl = version.posts?.image_url
+            const limit = PLATFORM_IMAGE_LIMITS[version.platform as Platform] ?? 10
+            const imageUrls: string[] = (version.platform_version_media || [])
+                .sort((a: { position: number }, b: { position: number }) => a.position - b.position)
+                .map((m: { post_media: { url: string } }) => m.post_media.url)
+                .slice(0, limit)
 
             let platformPostId: string | null = null
 
             if (version.platform === 'instagram') {
-                if (!imageUrl) throw new Error('Instagram requires an image')
-                platformPostId = await publishToInstagram(connection.account_id, connection.access_token, content, imageUrl)
+                platformPostId = await publishToInstagram(connection.account_id, connection.access_token, content, imageUrls)
             } else if (version.platform === 'linkedin') {
-                platformPostId = await publishToLinkedIn(connection.account_id, connection.access_token, content, imageUrl)
+                platformPostId = await publishToLinkedIn(connection.account_id, connection.access_token, content, imageUrls)
             } else if (version.platform === 'facebook') {
-                platformPostId = await publishToFacebook(connection.account_id, connection.access_token, content, imageUrl)
+                platformPostId = await publishToFacebook(connection.account_id, connection.access_token, content, imageUrls)
             } else if (version.platform === 'tiktok') {
-                if (!imageUrl) throw new Error('TikTok requires an image')
-                platformPostId = await publishToTikTok(connection.access_token, content, imageUrl)
+                platformPostId = await publishToTikTok(connection.access_token, content, imageUrls)
             } else {
                 throw new Error(`${version.platform} publishing not wired yet`)
             }
 
-            // The post is live on the platform at this point. A failure past this line can't be
-            // retried automatically without risking a duplicate post, so it's only logged, not retried.
             const { error: saveError } = await admin
                 .from('platform_versions')
                 .update({

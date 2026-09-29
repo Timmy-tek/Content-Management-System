@@ -1,24 +1,15 @@
+import { PLATFORM_IMAGE_LIMITS } from './mediaLimits'
+
 interface LinkedInPostBody {
     author: string
     lifecycleState: string
     visibility: string
     commentary: string
     distribution: { feedDistribution: string }
-    content?: { media: { id: string } }
+    content?: { media?: { id: string }; multiImage?: { images: { id: string }[] } }
 }
 
-export async function publishToInstagram(accountId: string, accessToken: string, caption: string, imageUrl: string) {
-    const containerRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ image_url: imageUrl, caption, access_token: accessToken }),
-    })
-    const containerData = await containerRes.json()
-    if (containerData.error) throw new Error(containerData.error.message)
-
-    const containerId = containerData.id
-
-    // poll until Instagram finishes fetching/processing the image, up to ~30s
+async function pollInstagramContainer(containerId: string, accessToken: string) {
     let status = 'IN_PROGRESS'
     for (let attempt = 0; attempt < 10; attempt++) {
         const statusRes = await fetch(
@@ -27,31 +18,78 @@ export async function publishToInstagram(accountId: string, accessToken: string,
         const statusData = await statusRes.json()
         status = statusData.status_code
 
-        if (status === 'FINISHED') break
-        if (status === 'ERROR') throw new Error('Instagram failed to process the image')
+        if (status === 'FINISHED') return
+        if (status === 'ERROR') throw new Error('Instagram failed to process the media')
 
         await new Promise((resolve) => setTimeout(resolve, 3000))
     }
+    throw new Error('Instagram is still processing the media — try publishing again in a moment')
+}
 
-    if (status !== 'FINISHED') {
-        throw new Error('Instagram is still processing the image — try publishing again in a moment')
+export async function publishToInstagram(accountId: string, accessToken: string, caption: string, imageUrls: string[]) {
+    if (imageUrls.length === 0) throw new Error('Instagram requires at least one image')
+
+    if (imageUrls.length === 1) {
+        const containerRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_url: imageUrls[0], caption, access_token: accessToken }),
+        })
+        const containerData = await containerRes.json()
+        if (containerData.error) throw new Error(containerData.error.message)
+
+        await pollInstagramContainer(containerData.id, accessToken)
+
+        const publishRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media_publish`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ creation_id: containerData.id, access_token: accessToken }),
+        })
+        const publishData = await publishRes.json()
+        if (publishData.error) throw new Error(publishData.error.message)
+        return publishData.id
     }
+
+    // Carousel: 2-10 images. Create one item container per image, wait for each,
+    // then a parent CAROUSEL container referencing all of them, then publish that.
+    const limited = imageUrls.slice(0, PLATFORM_IMAGE_LIMITS.instagram)
+    const childIds: string[] = []
+
+    for (const url of limited) {
+        const childRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image_url: url, is_carousel_item: true, access_token: accessToken }),
+        })
+        const childData = await childRes.json()
+        if (childData.error) throw new Error(childData.error.message)
+        await pollInstagramContainer(childData.id, accessToken)
+        childIds.push(childData.id)
+    }
+
+    const carouselRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ media_type: 'CAROUSEL', children: childIds.join(','), caption, access_token: accessToken }),
+    })
+    const carouselData = await carouselRes.json()
+    if (carouselData.error) throw new Error(carouselData.error.message)
+    await pollInstagramContainer(carouselData.id, accessToken)
 
     const publishRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media_publish`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ creation_id: containerId, access_token: accessToken }),
+        body: JSON.stringify({ creation_id: carouselData.id, access_token: accessToken }),
     })
     const publishData = await publishRes.json()
     if (publishData.error) throw new Error(publishData.error.message)
-
     return publishData.id
 }
 
-export async function publishToLinkedIn(memberUrn: string, accessToken: string, commentary: string, imageUrl?: string) {
-    let imageUrn: string | null = null
+export async function publishToLinkedIn(memberUrn: string, accessToken: string, commentary: string, imageUrls: string[] = []) {
+    const limited = imageUrls.slice(0, PLATFORM_IMAGE_LIMITS.linkedin)
 
-    if (imageUrl) {
+    async function uploadOneImage(imageUrl: string): Promise<string> {
         const initRes = await fetch('https://api.linkedin.com/rest/images?action=initializeUpload', {
             method: 'POST',
             headers: {
@@ -66,9 +104,8 @@ export async function publishToLinkedIn(memberUrn: string, accessToken: string, 
         if (!initRes.ok) throw new Error(`LinkedIn image init failed: ${JSON.stringify(initData)}`)
 
         const uploadUrl = initData.value.uploadUrl
-        imageUrn = initData.value.image
+        const imageUrn = initData.value.image
 
-        // fetch the actual image bytes from our own Supabase Storage URL
         const imageRes = await fetch(imageUrl)
         const imageBuffer = await imageRes.arrayBuffer()
 
@@ -78,6 +115,8 @@ export async function publishToLinkedIn(memberUrn: string, accessToken: string, 
             body: Buffer.from(imageBuffer),
         })
         if (!putRes.ok) throw new Error('LinkedIn image upload failed')
+
+        return imageUrn
     }
 
     const body: LinkedInPostBody = {
@@ -88,8 +127,15 @@ export async function publishToLinkedIn(memberUrn: string, accessToken: string, 
         distribution: { feedDistribution: 'MAIN_FEED' },
     }
 
-    if (imageUrn) {
+    if (limited.length === 1) {
+        const imageUrn = await uploadOneImage(limited[0])
         body.content = { media: { id: imageUrn } }
+    } else if (limited.length >= 2) {
+        const imageUrns: string[] = []
+        for (const url of limited) {
+            imageUrns.push(await uploadOneImage(url))
+        }
+        body.content = { multiImage: { images: imageUrns.map((id) => ({ id })) } }
     }
 
     const res = await fetch('https://api.linkedin.com/rest/posts', {
@@ -111,17 +157,10 @@ export async function publishToLinkedIn(memberUrn: string, accessToken: string, 
     return res.headers.get('x-restli-id')
 }
 
-export async function publishToFacebook(pageId: string, pageAccessToken: string, caption: string, imageUrl?: string) {
-    if (imageUrl) {
-        const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: imageUrl, caption, access_token: pageAccessToken }),
-        })
-        const data = await res.json()
-        if (data.error) throw new Error(data.error.message)
-        return data.post_id || data.id
-    } else {
+export async function publishToFacebook(pageId: string, pageAccessToken: string, caption: string, imageUrls: string[] = []) {
+    const limited = imageUrls.slice(0, PLATFORM_IMAGE_LIMITS.facebook)
+
+    if (limited.length === 0) {
         const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -131,6 +170,44 @@ export async function publishToFacebook(pageId: string, pageAccessToken: string,
         if (data.error) throw new Error(data.error.message)
         return data.id
     }
+
+    if (limited.length === 1) {
+        const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: limited[0], caption, access_token: pageAccessToken }),
+        })
+        const data = await res.json()
+        if (data.error) throw new Error(data.error.message)
+        return data.post_id || data.id
+    }
+
+    // Multi-photo: each photo is uploaded unpublished first, then all of them are
+    // attached to one /feed post so they show up as a single multi-photo post.
+    const photoIds: string[] = []
+    for (const url of limited) {
+        const res = await fetch(`https://graph.facebook.com/v21.0/${pageId}/photos`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url, published: false, access_token: pageAccessToken }),
+        })
+        const data = await res.json()
+        if (data.error) throw new Error(data.error.message)
+        photoIds.push(data.id)
+    }
+
+    const feedRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/feed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            message: caption,
+            attached_media: photoIds.map((id) => ({ media_fbid: id })),
+            access_token: pageAccessToken,
+        }),
+    })
+    const feedData = await feedRes.json()
+    if (feedData.error) throw new Error(feedData.error.message)
+    return feedData.id
 }
 
 async function getTikTokCreatorInfo(accessToken: string) {
@@ -146,18 +223,19 @@ async function getTikTokCreatorInfo(accessToken: string) {
     return data.data
 }
 
-export async function publishToTikTok(accessToken: string, caption: string, imageUrl: string) {
+export async function publishToTikTok(accessToken: string, caption: string, imageUrls: string[]) {
+    if (imageUrls.length === 0) throw new Error('TikTok requires at least one image')
+
+    const limited = imageUrls.slice(0, PLATFORM_IMAGE_LIMITS.tiktok)
+
     const creatorInfo = await getTikTokCreatorInfo(accessToken)
     const allowedPrivacyLevels: string[] = creatorInfo.privacy_level_options || []
-
-    // prefer SELF_ONLY if it's actually offered, otherwise just take whatever this account allows
-    const privacyLevel = allowedPrivacyLevels.includes('SELF_ONLY')
-        ? 'SELF_ONLY'
-        : allowedPrivacyLevels[0]
-
+    const privacyLevel = allowedPrivacyLevels.includes('SELF_ONLY') ? 'SELF_ONLY' : allowedPrivacyLevels[0]
     if (!privacyLevel) throw new Error('TikTok did not return any valid privacy level for this account')
 
-    const proxiedImageUrl = `${process.env.APP_URL}/api/tiktok-image-proxy?src=${encodeURIComponent(imageUrl)}`
+    const proxiedImageUrls = limited.map(
+        (url) => `${process.env.APP_URL}/api/tiktok-image-proxy?src=${encodeURIComponent(url)}`
+    )
 
     const res = await fetch('https://open.tiktokapis.com/v2/post/publish/content/init/', {
         method: 'POST',
@@ -175,7 +253,7 @@ export async function publishToTikTok(accessToken: string, caption: string, imag
             source_info: {
                 source: 'PULL_FROM_URL',
                 photo_cover_index: 0,
-                photo_images: [proxiedImageUrl],
+                photo_images: proxiedImageUrls,
             },
             post_mode: 'DIRECT_POST',
             media_type: 'PHOTO',
@@ -184,6 +262,5 @@ export async function publishToTikTok(accessToken: string, caption: string, imag
 
     const data = await res.json()
     if (data.error && data.error.code !== 'ok') throw new Error(data.error.message || JSON.stringify(data.error))
-
     return data.data.publish_id
 }

@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { syncPostStatus } from '@/lib/postStatus'
+import { PLATFORM_IMAGE_LIMITS } from '@/lib/mediaLimits'
+import type { Platform } from '@/types'
 import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok } from '@/lib/publishers'
 
 export async function POST(req: Request) {
@@ -13,15 +15,19 @@ export async function POST(req: Request) {
 
         const { data: version, error: versionError } = await supabase
             .from('platform_versions')
-            .select('*, posts(image_url)')
+            .select('*, platform_version_media(position, post_media(url))')
             .eq('id', platformVersionId)
             .eq('user_id', user.id)
             .single()
         if (versionError || !version) throw new Error('Post version not found')
         if (version.status === 'published') throw new Error('This version is already published')
 
-        const platform: string = version.platform
-        const imageUrl: string | undefined = version.posts?.image_url ?? undefined
+        const platform = version.platform as Platform
+        const limit = PLATFORM_IMAGE_LIMITS[platform] ?? 10
+        const imageUrls: string[] = (version.platform_version_media || [])
+            .sort((a: { position: number }, b: { position: number }) => a.position - b.position)
+            .map((m: { post_media: { url: string } }) => m.post_media.url)
+            .slice(0, limit)
 
         const captionToUse = captionOverride ?? version.caption
         const hashtagsToUse: string[] = hashtagsOverride ?? version.hashtags ?? []
@@ -29,7 +35,6 @@ export async function POST(req: Request) {
             ? `${captionToUse}\n\n${hashtagsToUse.join(' ')}`
             : captionToUse
 
-        // Tokens are only readable with the service role, so we scope by user_id by hand
         const admin = createAdminClient()
         const { data: connection } = await admin
             .from('platform_connections')
@@ -45,15 +50,13 @@ export async function POST(req: Request) {
         let platformPostId: string | null = null
 
         if (platform === 'instagram') {
-            if (!imageUrl) throw new Error('Instagram requires an image')
-            platformPostId = await publishToInstagram(connection.account_id, connection.access_token, contentToPublish, imageUrl)
+            platformPostId = await publishToInstagram(connection.account_id, connection.access_token, contentToPublish, imageUrls)
         } else if (platform === 'linkedin') {
-            platformPostId = await publishToLinkedIn(connection.account_id, connection.access_token, contentToPublish, imageUrl)
+            platformPostId = await publishToLinkedIn(connection.account_id, connection.access_token, contentToPublish, imageUrls)
         } else if (platform === 'facebook') {
-            platformPostId = await publishToFacebook(connection.account_id, connection.access_token, contentToPublish, imageUrl)
+            platformPostId = await publishToFacebook(connection.account_id, connection.access_token, contentToPublish, imageUrls)
         } else if (platform === 'tiktok') {
-            if (!imageUrl) throw new Error('TikTok requires an image')
-            platformPostId = await publishToTikTok(connection.access_token, contentToPublish, imageUrl)
+            platformPostId = await publishToTikTok(connection.access_token, contentToPublish, imageUrls)
         } else {
             throw new Error(`${platform} publishing not wired yet`)
         }
@@ -62,7 +65,6 @@ export async function POST(req: Request) {
             .from('platform_versions')
             .update({ status: 'published', published_at: new Date().toISOString(), platform_post_id: platformPostId })
             .eq('id', platformVersionId)
-        // the post IS live at this point, so don't fail the request over a bookkeeping error
         if (updateError) console.error('Published, but failed to save status:', updateError)
 
         await syncPostStatus(supabase, version.post_id)

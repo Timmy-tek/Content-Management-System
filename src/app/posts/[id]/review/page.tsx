@@ -8,6 +8,7 @@ import { BranchingPipeline } from '@/components/BranchingPipeline';
 import { ScrubberBar } from '@/components/ScrubberBar';
 import { PlatformBadge } from '@/components/PlatformBadge';
 import { StatusCapsule } from '@/components/StatusCapsule';
+import { PlatformMediaEditor } from '@/components/PlatformMediaEditor';
 import {
   Check,
   RotateCw,
@@ -225,6 +226,9 @@ export default function ReviewPage() {
                 />
               </div>
 
+              {/* Attached images for this platform */}
+              <PlatformMediaEditor postId={postId} platform={activePlatform} />
+
               {/* Individual Approve button */}
               <div className="pt-2 flex items-center justify-between">
                 <span className="text-[11px] text-[#666666] font-inter">
@@ -261,6 +265,11 @@ export default function ReviewPage() {
 
                 {/* Simulated Platform Card Mock */}
                 <div className="bg-[#F8F8F7] rounded-xl p-4 border border-black/5 space-y-3 font-inter text-xs">
+                  {currentVersion.media[0] && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={currentVersion.media[0].url} alt="" className="w-full rounded-lg object-cover max-h-40" />
+                  )}
+                  
                   <div className="flex items-center gap-2.5">
                     <div className="w-7 h-7 rounded-full bg-[#111111] text-white flex items-center justify-center font-bold text-[10px]">
                       CE
