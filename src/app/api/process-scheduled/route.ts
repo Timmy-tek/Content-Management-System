@@ -3,6 +3,9 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { syncPostStatus } from '@/lib/postStatus'
 import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok } from '@/lib/publishers'
 
+const MAX_ATTEMPTS = 3
+const STALE_CLAIM_MINUTES = 5
+
 export async function GET(req: Request) {
     const authHeader = req.headers.get('authorization')
     if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -10,18 +13,33 @@ export async function GET(req: Request) {
     }
 
     const admin = createAdminClient()
+    const nowIso = new Date().toISOString()
+    const staleCutoff = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000).toISOString()
 
     const { data: dueVersions } = await admin
         .from('platform_versions')
         .select('*, posts(image_url)')
         .eq('status', 'scheduled')
-        .lte('scheduled_at', new Date().toISOString())
+        .lte('scheduled_at', nowIso)
+        .or(`claimed_at.is.null,claimed_at.lt.${staleCutoff}`)
 
     const results = []
 
     for (const version of dueVersions || []) {
+        // Atomic claim: this UPDATE's WHERE clause is checked and applied as one step by
+        // Postgres, so if two cron runs overlap, only one of them gets a row back here.
+        const { data: claimed } = await admin
+            .from('platform_versions')
+            .update({ claimed_at: nowIso })
+            .eq('id', version.id)
+            .eq('status', 'scheduled')
+            .or(`claimed_at.is.null,claimed_at.lt.${staleCutoff}`)
+            .select()
+            .maybeSingle()
+
+        if (!claimed) continue // another run claimed it first
+
         try {
-            // the connection belonging to THIS version's owner
             const { data: connection } = await admin
                 .from('platform_connections')
                 .select('*')
@@ -54,17 +72,42 @@ export async function GET(req: Request) {
                 throw new Error(`${version.platform} publishing not wired yet`)
             }
 
-            await admin
+            // The post is live on the platform at this point. A failure past this line can't be
+            // retried automatically without risking a duplicate post, so it's only logged, not retried.
+            const { error: saveError } = await admin
                 .from('platform_versions')
-                .update({ status: 'published', published_at: new Date().toISOString(), platform_post_id: platformPostId })
+                .update({
+                    status: 'published',
+                    published_at: new Date().toISOString(),
+                    platform_post_id: platformPostId,
+                    claimed_at: null,
+                    last_error: null,
+                })
                 .eq('id', version.id)
 
-            await syncPostStatus(admin, version.post_id)
+            if (saveError) {
+                console.error(
+                    `CRITICAL: ${version.platform} post ${platformPostId} (version ${version.id}) is live but the database update failed: ${saveError.message}`
+                )
+                results.push({ versionId: version.id, platform: version.platform, success: true, warning: 'published but not recorded — check logs' })
+                continue
+            }
 
+            await syncPostStatus(admin, version.post_id)
             results.push({ versionId: version.id, platform: version.platform, success: true })
         } catch (err) {
             const message = err instanceof Error ? err.message : 'Scheduled publish failed'
-            results.push({ versionId: version.id, platform: version.platform, success: false, error: message })
+            const attempts = (version.attempts ?? 0) + 1
+            const nextStatus = attempts >= MAX_ATTEMPTS ? 'failed' : 'scheduled'
+
+            await admin
+                .from('platform_versions')
+                .update({ status: nextStatus, attempts, last_error: message, claimed_at: null })
+                .eq('id', version.id)
+
+            if (nextStatus === 'failed') await syncPostStatus(admin, version.post_id)
+
+            results.push({ versionId: version.id, platform: version.platform, success: false, error: message, attempts })
         }
     }
 
