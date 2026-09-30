@@ -493,13 +493,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const removed = posts.find((p) => p.id === postId);
         setPosts((prev) => prev.filter((p) => p.id !== postId));
 
-        supabase
-            .from('posts')
-            .delete()
-            .eq('id', postId)
-            .then(({ error }) => {
-                if (!error) return;
-                console.error('Failed to delete post:', error);
+        fetch(`/api/posts/${postId}`, { method: 'DELETE' })
+            .then(async (res) => {
+                if (res.ok) return;
+                const data = await res.json().catch(() => ({}));
+                console.error('Failed to delete post:', data.error);
+                if (removed) {
+                    setPosts((prev) =>
+                        [...prev, removed].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+                    );
+                }
+            })
+            .catch((err) => {
+                console.error('Failed to delete post:', err);
                 if (removed) {
                     setPosts((prev) =>
                         [...prev, removed].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
