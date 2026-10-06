@@ -55,15 +55,20 @@ export async function GET(req: Request) {
                 : version.caption
 
             // --- NEW MEDIA & PUBLISHING LOGIC ---
-            const attachedMedia = (version.platform_version_media || []).sort(
-                (a: any, b: any) => a.position - b.position
+            interface AttachedMedia {
+                position: number
+                post_media: { url: string; media_type: 'image' | 'video' } | null
+            }
+
+            const attachedMedia = ((version.platform_version_media || []) as AttachedMedia[]).sort(
+                (a, b) => a.position - b.position
             )
             const mediaType: 'image' | 'video' = attachedMedia[0]?.post_media?.media_type ?? 'image'
             const platform = version.platform as Platform
             const limit = PLATFORM_IMAGE_LIMITS[platform] ?? 10
 
             const imageUrls: string[] = mediaType === 'image'
-                ? attachedMedia.map((m: any) => m.post_media.url).slice(0, limit)
+                ? attachedMedia.map((m) => m.post_media!.url).slice(0, limit)
                 : []
             const videoUrl: string | undefined = mediaType === 'video' ? attachedMedia[0]?.post_media?.url : undefined
 
@@ -88,7 +93,7 @@ export async function GET(req: Request) {
             } else {
                 throw new Error(`${platform} publishing not wired yet`)
             }
-            // ------------------------------------
+
 
             const { error: saveError } = await admin
                 .from('platform_versions')
