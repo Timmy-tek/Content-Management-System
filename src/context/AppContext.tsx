@@ -50,8 +50,7 @@ interface PostMediaRow {
 
 interface PlatformVersionMediaRow {
     position: number;
-    post_media: { id: string; url: string } | null;
-    media_type: 'image' | 'video';
+    post_media: { id: string; url: string; media_type: 'image' | 'video' } | null;
 }
 
 interface PlatformVersionRow {
