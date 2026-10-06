@@ -105,7 +105,7 @@ export async function POST(req: Request) {
 
         const admin = createAdminClient()
         if (imageUrls && imageUrls.length > 0) {
-            const paths = imageUrls.map(storagePathFromPublicUrl).filter((p): p is string => !!p)
+            const paths = imageUrls.map((url) => storagePathFromPublicUrl(url)).filter((p): p is string => !!p)
             if (paths.length > 0) await admin.storage.from('post-images').remove(paths)
         }
         if (videoUrl) {
