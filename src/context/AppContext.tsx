@@ -151,7 +151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             const mapped: Post[] = data.map((row) => {
                 const postMedia: PostMediaItem[] = ((row.post_media as PostMediaRow[]) || [])
                     .sort((a, b) => a.position - b.position)
-                    .map((m) => ({ id: m.id, url: m.url, position: m.position }));
+                    .map((m) => ({ id: m.id, url: m.url, position: m.position, mediaType: m.media_type }));
 
                 const versions: Post['versions'] = {};
                 (row.platform_versions || []).forEach((v: PlatformVersionRow) => {
