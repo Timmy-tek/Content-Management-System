@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { title, contentType, sourceText, primaryGoal, targetAudience, platforms, imageUrls } = body as {
+    const { title, contentType, sourceText, primaryGoal, targetAudience, platforms, imageUrls, videoUrl } = body as {
         title: string
         contentType: string
         sourceText: string
@@ -19,6 +19,7 @@ export async function POST(req: Request) {
         targetAudience?: string
         platforms: Platform[]
         imageUrls?: string[]
+        videoUrl?: string
     }
 
     let postId: string | null = null
@@ -40,9 +41,18 @@ export async function POST(req: Request) {
         if (postError) throw postError
         postId = post.id
 
-        const postMedia: { id: string; url: string; position: number }[] = []
-        if (imageUrls && imageUrls.length > 0) {
-            const rows = imageUrls.map((url, index) => ({ post_id: post.id, user_id: user.id, url, position: index }))
+        const postMedia: { id: string; url: string; position: number; media_type: 'image' | 'video' }[] = []
+
+        if (videoUrl) {
+            const { data: mediaRow, error: mediaError } = await supabase
+                .from('post_media')
+                .insert({ post_id: post.id, user_id: user.id, url: videoUrl, position: 0, media_type: 'video' })
+                .select()
+                .single()
+            if (mediaError) throw mediaError
+            postMedia.push(mediaRow)
+        } else if (imageUrls && imageUrls.length > 0) {
+            const rows = imageUrls.map((url, index) => ({ post_id: post.id, user_id: user.id, url, position: index, media_type: 'image' as const }))
             const { data: mediaRows, error: mediaError } = await supabase.from('post_media').insert(rows).select()
             if (mediaError) throw mediaError
             postMedia.push(...mediaRows.sort((a, b) => a.position - b.position))
@@ -69,8 +79,9 @@ export async function POST(req: Request) {
                 .single()
             if (versionError) throw versionError
 
-            const limit = PLATFORM_IMAGE_LIMITS[platform] ?? 10
-            const assigned = postMedia.slice(0, limit)
+            const assigned = videoUrl
+                ? postMedia // exactly one video, every platform gets it
+                : postMedia.slice(0, PLATFORM_IMAGE_LIMITS[platform] ?? 10)
 
             if (assigned.length > 0) {
                 const attachRows = assigned.map((m, index) => ({
@@ -90,20 +101,16 @@ export async function POST(req: Request) {
     } catch (err: unknown) {
         console.error('Generate failed, rolling back:', err)
 
-        if (postId) {
-            // delete the post row (cascades to post_media / platform_versions / platform_version_media)
-            await supabase.from('posts').delete().eq('id', postId)
-        }
+        if (postId) await supabase.from('posts').delete().eq('id', postId)
 
-        // the images for THIS attempt were just uploaded moments ago — nothing else
-        // references them yet, so it's safe to remove them from Storage too
+        const admin = createAdminClient()
         if (imageUrls && imageUrls.length > 0) {
             const paths = imageUrls.map(storagePathFromPublicUrl).filter((p): p is string => !!p)
-            if (paths.length > 0) {
-                const admin = createAdminClient()
-                const { error: removeError } = await admin.storage.from('post-images').remove(paths)
-                if (removeError) console.error('Rollback: failed to remove orphaned images:', removeError.message)
-            }
+            if (paths.length > 0) await admin.storage.from('post-images').remove(paths)
+        }
+        if (videoUrl) {
+            const path = storagePathFromPublicUrl(videoUrl, 'post-videos')
+            if (path) await admin.storage.from('post-videos').remove([path])
         }
 
         const message = err instanceof Error ? err.message : 'Unknown error'

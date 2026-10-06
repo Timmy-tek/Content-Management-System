@@ -9,9 +9,9 @@ interface LinkedInPostBody {
     content?: { media?: { id: string }; multiImage?: { images: { id: string }[] } }
 }
 
-async function pollInstagramContainer(containerId: string, accessToken: string) {
+async function pollInstagramContainer(containerId: string, accessToken: string, maxAttempts = 10, intervalMs = 3000) {
     let status = 'IN_PROGRESS'
-    for (let attempt = 0; attempt < 10; attempt++) {
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const statusRes = await fetch(
             `https://graph.instagram.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
         )
@@ -21,9 +21,54 @@ async function pollInstagramContainer(containerId: string, accessToken: string) 
         if (status === 'FINISHED') return
         if (status === 'ERROR') throw new Error('Instagram failed to process the media')
 
-        await new Promise((resolve) => setTimeout(resolve, 3000))
+        await new Promise((resolve) => setTimeout(resolve, intervalMs))
     }
     throw new Error('Instagram is still processing the media — try publishing again in a moment')
+}
+
+export async function publishToInstagramReel(accountId: string, accessToken: string, caption: string, videoUrl: string) {
+    const containerRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ media_type: 'REELS', video_url: videoUrl, caption, access_token: accessToken }),
+    })
+    const containerData = await containerRes.json()
+    if (containerData.error) throw new Error(containerData.error.message)
+
+    await pollInstagramContainer(containerData.id, accessToken, 20, 5000)
+
+    const publishRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media_publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creation_id: containerData.id, access_token: accessToken }),
+    })
+    const publishData = await publishRes.json()
+    if (publishData.error) throw new Error(publishData.error.message)
+    return publishData.id
+}
+
+export async function publishToTikTokVideo(accessToken: string, caption: string, videoUrl: string) {
+    const creatorInfo = await getTikTokCreatorInfo(accessToken)
+    const allowedPrivacyLevels: string[] = creatorInfo.privacy_level_options || []
+    const privacyLevel = allowedPrivacyLevels.includes('SELF_ONLY') ? 'SELF_ONLY' : allowedPrivacyLevels[0]
+    if (!privacyLevel) throw new Error('TikTok did not return any valid privacy level for this account')
+
+    const proxiedVideoUrl = `${process.env.APP_URL}/api/tiktok-video-proxy?src=${encodeURIComponent(videoUrl)}`
+
+    const res = await fetch('https://open.tiktokapis.com/v2/post/publish/video/init/', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            post_info: { title: caption.slice(0, 90), privacy_level: privacyLevel, disable_comment: false },
+            source_info: { source: 'PULL_FROM_URL', video_url: proxiedVideoUrl },
+            post_mode: 'DIRECT_POST',
+            media_type: 'VIDEO',
+        }),
+    })
+
+    const data = await res.json()
+    if (data.error && data.error.code !== 'ok') throw new Error(data.error.message || JSON.stringify(data.error))
+    return data.data.publish_id
 }
 
 export async function publishToInstagram(accountId: string, accessToken: string, caption: string, imageUrls: string[]) {

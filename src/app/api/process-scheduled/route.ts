@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { syncPostStatus } from '@/lib/postStatus'
 import { PLATFORM_IMAGE_LIMITS } from '@/lib/mediaLimits'
 import type { Platform } from '@/types'
-import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok } from '@/lib/publishers'
+import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok, publishToInstagramReel, publishToTikTokVideo } from '@/lib/publishers'
 
 const MAX_ATTEMPTS = 3
 const STALE_CLAIM_MINUTES = 5
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
 
     const { data: dueVersions } = await admin
         .from('platform_versions')
-        .select('*, platform_version_media(position, post_media(url))')
+        .select('*, platform_version_media(position, post_media(url, media_type))')
         .eq('status', 'scheduled')
         .lte('scheduled_at', nowIso)
         .or(`claimed_at.is.null,claimed_at.lt.${staleCutoff}`)
@@ -54,25 +54,41 @@ export async function GET(req: Request) {
                 ? `${version.caption}\n\n${version.hashtags.join(' ')}`
                 : version.caption
 
-            const limit = PLATFORM_IMAGE_LIMITS[version.platform as Platform] ?? 10
-            const imageUrls: string[] = (version.platform_version_media || [])
-                .sort((a: { position: number }, b: { position: number }) => a.position - b.position)
-                .map((m: { post_media: { url: string } }) => m.post_media.url)
-                .slice(0, limit)
+            // --- NEW MEDIA & PUBLISHING LOGIC ---
+            const attachedMedia = (version.platform_version_media || []).sort(
+                (a: any, b: any) => a.position - b.position
+            )
+            const mediaType: 'image' | 'video' = attachedMedia[0]?.post_media?.media_type ?? 'image'
+            const platform = version.platform as Platform
+            const limit = PLATFORM_IMAGE_LIMITS[platform] ?? 10
+
+            const imageUrls: string[] = mediaType === 'image'
+                ? attachedMedia.map((m: any) => m.post_media.url).slice(0, limit)
+                : []
+            const videoUrl: string | undefined = mediaType === 'video' ? attachedMedia[0]?.post_media?.url : undefined
 
             let platformPostId: string | null = null
 
-            if (version.platform === 'instagram') {
+            if (mediaType === 'video') {
+                if (platform === 'instagram') {
+                    platformPostId = await publishToInstagramReel(connection.account_id, connection.access_token, content, videoUrl!)
+                } else if (platform === 'tiktok') {
+                    platformPostId = await publishToTikTokVideo(connection.access_token, content, videoUrl!)
+                } else {
+                    throw new Error(`Video publishing for ${platform} isn't wired up yet`)
+                }
+            } else if (platform === 'instagram') {
                 platformPostId = await publishToInstagram(connection.account_id, connection.access_token, content, imageUrls)
-            } else if (version.platform === 'linkedin') {
+            } else if (platform === 'linkedin') {
                 platformPostId = await publishToLinkedIn(connection.account_id, connection.access_token, content, imageUrls)
-            } else if (version.platform === 'facebook') {
+            } else if (platform === 'facebook') {
                 platformPostId = await publishToFacebook(connection.account_id, connection.access_token, content, imageUrls)
-            } else if (version.platform === 'tiktok') {
+            } else if (platform === 'tiktok') {
                 platformPostId = await publishToTikTok(connection.access_token, content, imageUrls)
             } else {
-                throw new Error(`${version.platform} publishing not wired yet`)
+                throw new Error(`${platform} publishing not wired yet`)
             }
+            // ------------------------------------
 
             const { error: saveError } = await admin
                 .from('platform_versions')

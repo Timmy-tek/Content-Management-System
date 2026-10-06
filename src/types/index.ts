@@ -33,6 +33,7 @@ export interface PostMediaItem {
   id: string;
   url: string;
   position: number;
+  mediaType: 'image' | 'video';
 }
 
 export interface PlatformVersion {

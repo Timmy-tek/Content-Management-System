@@ -45,11 +45,13 @@ interface PostMediaRow {
     id: string;
     url: string;
     position: number;
+    media_type: 'image' | 'video';
 }
 
 interface PlatformVersionMediaRow {
     position: number;
     post_media: { id: string; url: string } | null;
+    media_type: 'image' | 'video';
 }
 
 interface PlatformVersionRow {
@@ -97,7 +99,7 @@ const mediaFromVersionRow = (row: PlatformVersionMediaRow[] | undefined): PostMe
     (row || [])
         .filter((m) => m.post_media)
         .sort((a, b) => a.position - b.position)
-        .map((m) => ({ id: m.post_media!.id, url: m.post_media!.url, position: m.position }));
+        .map((m) => ({ id: m.post_media!.id, url: m.post_media!.url, position: m.position, mediaType: m.post_media!.media_type }));
 
 interface AppContextType {
     posts: Post[];
@@ -106,7 +108,7 @@ interface AppContextType {
     reloadConnections: () => Promise<void>;
     brandSettings: BrandSettings;
     apiSettings: ApiSettings;
-    addPost: (postData: { title: string; contentType: Post['contentType']; sourceContent: string; goal?: string; audience?: string; selectedPlatforms: Platform[]; imageUrls?: string[] }) => Promise<string>;
+    addPost: (postData: { title: string; contentType: Post['contentType']; sourceContent: string; goal?: string; audience?: string; selectedPlatforms: Platform[]; imageUrls?: string[]; videoUrl?: string; }) => Promise<string>;
     updatePlatformVersion: (postId: string, platform: Platform, updates: Partial<PlatformVersion>) => void;
     approvePlatformVersion: (postId: string, platform: Platform) => void;
     approveAllPlatformVersions: (postId: string) => void;
@@ -263,6 +265,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                                                           audience,
                                                           selectedPlatforms,
                                                           imageUrls,
+                                                          videoUrl, // <-- ADD THIS
                                                       }) => {
         const res = await fetch('/api/generate', {
             method: 'POST',
@@ -275,6 +278,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 targetAudience: audience,
                 platforms: selectedPlatforms,
                 imageUrls,
+                videoUrl, // <-- ADD THIS
             }),
         });
 
