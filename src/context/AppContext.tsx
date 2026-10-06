@@ -293,7 +293,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         );
 
         const versions: Post['versions'] = {};
-        dbVersions.forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus; media: { id: string; url: string; position: number }[] }) => {
+        dbVersions.forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus; media: { id: string; url: string; position: number; media_type: 'image' | 'video' }[] }) => {
             versions[v.platform as Platform] = {
                 id: v.id,
                 postId: v.post_id,
@@ -303,7 +303,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 status: v.status,
                 approved: false,
                 previewType: previewTypeFor(v.platform as Platform),
-                media: (v.media || []).map((m, index) => ({ id: m.id, url: m.url, position: index })),
+                media: (v.media || []).map((m, index) => ({ id: m.id, url: m.url, position: index, mediaType: m.media_type })),
             };
         });
 
