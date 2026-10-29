@@ -266,8 +266,13 @@ export default function ReviewPage() {
                 {/* Simulated Platform Card Mock */}
                 <div className="bg-[#F8F8F7] rounded-xl p-4 border border-black/5 space-y-3 font-inter text-xs">
                   {currentVersion.media[0] && (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={currentVersion.media[0].url} alt="" className="w-full rounded-lg object-cover max-h-40" />
+                      currentVersion.media[0].mediaType === 'video' ? (
+                          // eslint-disable-next-line jsx-a11y/media-has-caption
+                          <video src={currentVersion.media[0].url} controls muted className="w-full rounded-lg max-h-48 bg-black" />
+                      ) : (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={currentVersion.media[0].url} alt="" className="w-full rounded-lg object-cover max-h-40" />
+                      )
                   )}
                   
                   <div className="flex items-center gap-2.5">

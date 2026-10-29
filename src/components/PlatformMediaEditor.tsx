@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react';
 import { useApp } from '@/context/AppContext';
 import type { Platform } from '@/types';
-import { PLATFORM_IMAGE_LIMITS } from '@/lib/mediaLimits';
+import { PLATFORM_IMAGE_LIMITS, VIDEO_SUPPORTED_PLATFORMS } from '@/lib/mediaLimits';
 import { Plus, X, GripVertical, Image as ImageIcon } from 'lucide-react';
 
 export function PlatformMediaEditor({ postId, platform }: { postId: string; platform: Platform }) {
@@ -18,6 +18,25 @@ export function PlatformMediaEditor({ postId, platform }: { postId: string; plat
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     if (!post || !version) return null;
+    // Video posts: one video per post, shown read-only (no image picker, upload or reordering)
+    const videoItem = version.media.find((m) => m.mediaType === 'video');
+    if (videoItem) {
+        const supported = VIDEO_SUPPORTED_PLATFORMS.includes(platform);
+        return (
+            <div className="space-y-3">
+                <label className="text-[11px] font-bold font-space uppercase tracking-wider text-[#444444]">
+                    Attached Video
+                </label>
+                {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                <video src={videoItem.url} controls muted className="w-full max-w-xs rounded-xl bg-black" />
+                {!supported && (
+                    <p className="text-[11px] text-[#574300] font-inter">
+                        Video publishing for {platform} isn&apos;t available yet, so this platform will fail if you publish this post.
+                    </p>
+                )}
+            </div>
+        );
+    }
 
     const limit = PLATFORM_IMAGE_LIMITS[platform];
     const selected = version.media;

@@ -10,11 +10,9 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
         const postId = params.id
 
-        // RLS already scopes this to the caller's own posts, but this also confirms
-        // the post exists before we go looking for its images
         const { data: mediaRows, error: mediaError } = await supabase
             .from('post_media')
-            .select('url')
+            .select('url, media_type')
             .eq('post_id', postId)
         if (mediaError) throw new Error(mediaError.message)
 
@@ -22,13 +20,27 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
         if (deleteError) throw new Error(deleteError.message)
 
         if (mediaRows && mediaRows.length > 0) {
-            const paths = mediaRows.map((m) => storagePathFromPublicUrl(m.url)).filter((p): p is string => !!p)
-            if (paths.length > 0) {
-                const admin = createAdminClient()
-                const { error: removeError } = await admin.storage.from('post-images').remove(paths)
-                // the post is already gone from the database at this point either way,
-                // so a Storage hiccup here is logged, not treated as a failed delete
-                if (removeError) console.error(`Post ${postId} deleted, but images failed to remove:`, removeError.message)
+            const admin = createAdminClient()
+
+            const imagePaths = mediaRows
+                .filter((m) => m.media_type !== 'video')
+                .map((m) => storagePathFromPublicUrl(m.url))
+                .filter((p): p is string => !!p)
+
+            const videoPaths = mediaRows
+                .filter((m) => m.media_type === 'video')
+                .map((m) => storagePathFromPublicUrl(m.url, 'post-videos'))
+                .filter((p): p is string => !!p)
+
+            // the post is already gone from the database at this point either way,
+            // so a Storage hiccup is logged, not treated as a failed delete
+            if (imagePaths.length > 0) {
+                const { error } = await admin.storage.from('post-images').remove(imagePaths)
+                if (error) console.error(`Post ${postId} deleted, but images failed to remove:`, error.message)
+            }
+            if (videoPaths.length > 0) {
+                const { error } = await admin.storage.from('post-videos').remove(videoPaths)
+                if (error) console.error(`Post ${postId} deleted, but videos failed to remove:`, error.message)
             }
         }
 
