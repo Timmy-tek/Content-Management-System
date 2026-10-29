@@ -6,8 +6,8 @@ const PUBLIC_PAGES = ['/login', '/auth/callback']
 
 // API routes that must work without a browser session:
 // - the two cron routes authenticate themselves with CRON_SECRET
-// - TikTok's servers fetch the image proxy directly
-const PUBLIC_API = ['/api/process-scheduled', '/api/refresh-tokens', '/api/tiktok-image-proxy']
+// - TikTok’s servers fetch the image and video proxies directly
+const PUBLIC_API = ['/api/process-scheduled', '/api/refresh-tokens', '/api/tiktok-image-proxy', '/api/tiktok-video-proxy']
 
 export async function middleware(request: NextRequest) {
     let response = NextResponse.next({ request })
