@@ -68,7 +68,9 @@ export async function publishToTikTokVideo(accessToken: string, caption: string,
 
     const data = await res.json()
     if (data.error && data.error.code !== 'ok') throw new Error(data.error.message || JSON.stringify(data.error))
-    return data.data.publish_id
+    const publishId: string = data.data.publish_id
+    await waitForTikTokPublish(accessToken, publishId)
+    return publishId
 }
 
 export async function publishToInstagram(accountId: string, accessToken: string, caption: string, imageUrls: string[]) {
@@ -307,5 +309,37 @@ export async function publishToTikTok(accessToken: string, caption: string, imag
 
     const data = await res.json()
     if (data.error && data.error.code !== 'ok') throw new Error(data.error.message || JSON.stringify(data.error))
-    return data.data.publish_id
+    const publishId: string = data.data.publish_id
+    await waitForTikTokPublish(accessToken, publishId)
+    return publishId
+}
+
+async function waitForTikTokPublish(accessToken: string, publishId: string, maxWaitMs = 90_000) {
+    const startedAt = Date.now()
+
+    while (Date.now() - startedAt < maxWaitMs) {
+        const res = await fetch('https://open.tiktokapis.com/v2/post/publish/status/fetch/', {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${accessToken}`,
+                'Content-Type': 'application/json; charset=UTF-8',
+            },
+            body: JSON.stringify({ publish_id: publishId }),
+        })
+        const data = await res.json()
+        if (data.error && data.error.code !== 'ok') {
+            throw new Error(`TikTok status check failed: ${data.error.message || data.error.code}`)
+        }
+
+        const status: string | undefined = data.data?.status
+        if (status === 'PUBLISH_COMPLETE') return
+        if (status === 'FAILED') {
+            throw new Error(`TikTok could not publish this post (${data.data?.fail_reason ?? 'unknown reason'})`)
+        }
+
+        await new Promise((resolve) => setTimeout(resolve, 4000))
+    }
+
+    // Still processing after the wait. We deliberately don't throw here: TikTok may still
+    // finish it, and failing would make the scheduler retry and risk a duplicate post.
 }
