@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useApp } from '@/context/AppContext';
 import { Platform, Post } from '@/types';
 import { PlatformBadge } from '@/components/PlatformBadge';
-import { maxImagesFor } from '@/lib/mediaLimits';
+import { maxImagesFor, VIDEO_SUPPORTED_PLATFORMS } from '@/lib/mediaLimits';
 import {
   Upload,
   Sparkles,
@@ -16,8 +16,12 @@ import {
   Image as ImageIcon,
   ArrowRight,
   X,
-  GripVertical
+  GripVertical,
+  Film,
+  AlertTriangle
 } from 'lucide-react';
+
+type MediaMode = 'image' | 'video';
 
 export default function NewPostPage() {
   const router = useRouter();
@@ -35,20 +39,35 @@ export default function NewPostPage() {
     'facebook',
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generatingStage, setGeneratingStage] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  const [mediaMode, setMediaMode] = useState<MediaMode>('image');
+
+  // Images
   const [imageFiles, setImageFiles] = useState<File[]>([]);
   const [isDraggingOver, setIsDraggingOver] = useState(false);
   const [dragIndex, setDragIndex] = useState<number | null>(null);
 
+  // Video
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoUploadProgress, setVideoUploadProgress] = useState<number | null>(null);
+
   const allPlatforms: Platform[] = ['instagram', 'linkedin', 'tiktok', 'facebook'];
   const maxImages = maxImagesFor(selectedPlatforms);
+
+  const videoIncompatiblePlatforms = selectedPlatforms.filter((p) => !VIDEO_SUPPORTED_PLATFORMS.includes(p));
 
   const previews = useMemo(() => imageFiles.map((f) => URL.createObjectURL(f)), [imageFiles]);
   useEffect(() => {
     return () => previews.forEach((url) => URL.revokeObjectURL(url));
   }, [previews]);
 
-  // If deselecting a platform lowers the cap below what's already uploaded, trim from the end.
+  const videoPreview = useMemo(() => (videoFile ? URL.createObjectURL(videoFile) : null), [videoFile]);
+  useEffect(() => {
+    return () => { if (videoPreview) URL.revokeObjectURL(videoPreview); };
+  }, [videoPreview]);
+
   useEffect(() => {
     if (imageFiles.length > maxImages) {
       setImageFiles((prev) => prev.slice(0, maxImages));
@@ -58,12 +77,17 @@ export default function NewPostPage() {
 
   const togglePlatform = (p: Platform) => {
     if (selectedPlatforms.includes(p)) {
-      if (selectedPlatforms.length > 1) {
-        setSelectedPlatforms(selectedPlatforms.filter((item) => item !== p));
-      }
+      if (selectedPlatforms.length > 1) setSelectedPlatforms(selectedPlatforms.filter((item) => item !== p));
     } else {
       setSelectedPlatforms([...selectedPlatforms, p]);
     }
+  };
+
+  const switchMediaMode = (mode: MediaMode) => {
+    setMediaMode(mode);
+    setError(null);
+    if (mode === 'image') setVideoFile(null);
+    else setImageFiles([]);
   };
 
   const addFiles = (incoming: FileList | File[]) => {
@@ -81,9 +105,7 @@ export default function NewPostPage() {
     });
   };
 
-  const removeImage = (index: number) => {
-    setImageFiles((prev) => prev.filter((_, i) => i !== index));
-  };
+  const removeImage = (index: number) => setImageFiles((prev) => prev.filter((_, i) => i !== index));
 
   const reorderImages = (fromIndex: number, toIndex: number) => {
     setImageFiles((prev) => {
@@ -94,29 +116,73 @@ export default function NewPostPage() {
     });
   };
 
+  const handleVideoSelect = (file: File | null) => {
+    setError(null);
+    if (!file) { setVideoFile(null); return; }
+    if (!file.type.startsWith('video/')) { setError('That file is not a video'); return; }
+    setVideoFile(file);
+  };
+
   async function uploadImages(files: File[]): Promise<string[]> {
     const formData = new FormData();
     files.forEach((f) => formData.append('files', f));
-
     const res = await fetch('/api/upload-image', { method: 'POST', body: formData });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Image upload failed');
     return data.imageUrls;
   }
 
+  async function uploadVideo(file: File): Promise<string> {
+    setGeneratingStage('Preparing upload...');
+    const signRes = await fetch('/api/videos/sign-upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileName: file.name, fileType: file.type }),
+    });
+    const signData = await signRes.json();
+    if (!signRes.ok) throw new Error(signData.error || 'Could not prepare video upload');
+
+    const { path, token, publicUrl } = signData;
+    const uploadUrl = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/upload/sign/post-videos/${path}?token=${token}`;
+
+    setGeneratingStage('Uploading video...');
+    await new Promise<void>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', uploadUrl);
+      xhr.setRequestHeader('Content-Type', file.type);
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) setVideoUploadProgress(Math.round((e.loaded / e.total) * 100));
+      };
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300 ? resolve() : reject(new Error('Video upload failed')));
+      xhr.onerror = () => reject(new Error('Video upload failed — check your connection and try again'));
+      xhr.send(file);
+    });
+
+    setVideoUploadProgress(null);
+    return publicUrl;
+  }
+
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!title.trim() || !sourceContent.trim()) return;
+    if (mediaMode === 'video' && !videoFile) { setError('Add a video before generating, or switch to Images.'); return; }
 
     setIsGenerating(true);
     setError(null);
+    setGeneratingStage('');
 
     try {
       let imageUrls: string[] | undefined;
-      if (imageFiles.length > 0) {
+      let videoUrl: string | undefined;
+
+      if (mediaMode === 'image' && imageFiles.length > 0) {
+        setGeneratingStage('Uploading images...');
         imageUrls = await uploadImages(imageFiles);
+      } else if (mediaMode === 'video' && videoFile) {
+        videoUrl = await uploadVideo(videoFile);
       }
 
+      setGeneratingStage('Running AI pipeline...');
       const newPostId = await addPost({
         title,
         contentType,
@@ -125,6 +191,7 @@ export default function NewPostPage() {
         audience,
         selectedPlatforms,
         imageUrls,
+        videoUrl,
       });
 
       router.push(`/posts/${newPostId}/review?animate=true`);
@@ -132,6 +199,7 @@ export default function NewPostPage() {
       const message = err instanceof Error ? err.message : 'Something went wrong generating this post. Try again.';
       setError(message);
       setIsGenerating(false);
+      setGeneratingStage('');
     }
   };
 
@@ -213,73 +281,138 @@ export default function NewPostPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider">
-                Images (required for Instagram)
+                4. Attached Media
               </label>
-              <span className="text-[11px] text-[#666666] font-inter">
-              {imageFiles.length} / {maxImages}
-            </span>
+              <div className="bg-[#F2F1EF] p-1 rounded-full flex items-center gap-1 border border-black/5">
+                {(['image', 'video'] as MediaMode[]).map((m) => (
+                    <button
+                        key={m}
+                        type="button"
+                        onClick={() => switchMediaMode(m)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold font-space transition-all cursor-pointer ${
+                            mediaMode === m ? 'bg-[#111111] text-white shadow-sm' : 'text-[#666666] hover:text-[#111111]'
+                        }`}
+                    >
+                      {m === 'image' ? <ImageIcon className="w-3.5 h-3.5" /> : <Film className="w-3.5 h-3.5" />}
+                      {m === 'image' ? 'Images' : 'Video'}
+                    </button>
+                ))}
+              </div>
             </div>
 
-            <div
-                onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
-                onDragLeave={() => setIsDraggingOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setIsDraggingOver(false);
-                  if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
-                }}
-                className={`rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${
-                    isDraggingOver ? 'border-[#111111] bg-black/5' : 'border-black/15'
-                }`}
-            >
-              <Upload className="w-5 h-5 text-[#666666] mx-auto mb-2" />
-              <p className="text-xs text-[#555555] font-inter">
-                Drag images here, or{' '}
-                <label className="text-[#111111] font-bold underline cursor-pointer">
-                  browse
-                  <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        if (e.target.files) addFiles(e.target.files);
-                        e.target.value = '';
+            {mediaMode === 'video' && videoIncompatiblePlatforms.length > 0 && (
+                <div className="flex items-start gap-2 text-xs text-[#574300] bg-[#F5E6A3]/40 p-3 rounded-2xl border border-[#F5E6A3] mb-3">
+                  <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                  <span>
+                Video publishing isn&apos;t wired up yet for {videoIncompatiblePlatforms.join(', ')}. Those platforms will be skipped when you publish this post.
+              </span>
+                </div>
+            )}
+
+            {mediaMode === 'image' ? (
+                <>
+                  <div className="flex justify-end mb-2">
+                    <span className="text-[11px] text-[#666666] font-inter">{imageFiles.length} / {maxImages}</span>
+                  </div>
+                  <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDraggingOver(true); }}
+                      onDragLeave={() => setIsDraggingOver(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDraggingOver(false);
+                        if (e.dataTransfer.files) addFiles(e.dataTransfer.files);
                       }}
-                  />
-                </label>
-              </p>
-            </div>
+                      className={`rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${
+                          isDraggingOver ? 'border-[#111111] bg-black/5' : 'border-black/15'
+                      }`}
+                  >
+                    <Upload className="w-5 h-5 text-[#666666] mx-auto mb-2" />
+                    <p className="text-xs text-[#555555] font-inter">
+                      Drag images here, or{' '}
+                      <label className="text-[#111111] font-bold underline cursor-pointer">
+                        browse
+                        <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => { if (e.target.files) addFiles(e.target.files); e.target.value = ''; }}
+                        />
+                      </label>
+                    </p>
+                  </div>
 
-            {imageFiles.length > 0 && (
-                <div className="flex flex-wrap gap-3 mt-4">
-                  {previews.map((url, index) => (
-                      <div
-                          key={url}
-                          draggable
-                          onDragStart={() => setDragIndex(index)}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={() => {
-                            if (dragIndex !== null && dragIndex !== index) reorderImages(dragIndex, index);
-                            setDragIndex(null);
-                          }}
-                          className="relative w-20 h-20 rounded-xl overflow-hidden border border-black/10 group cursor-move bg-[#F2F1EF]"
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={url} alt="" className="w-full h-full object-cover" />
-                        <div className="absolute top-1 left-1 bg-black/50 rounded-full p-0.5">
-                          <GripVertical className="w-3 h-3 text-white" />
+                  {imageFiles.length > 0 && (
+                      <div className="flex flex-wrap gap-3 mt-4">
+                        {previews.map((url, index) => (
+                            <div
+                                key={url}
+                                draggable
+                                onDragStart={() => setDragIndex(index)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={() => {
+                                  if (dragIndex !== null && dragIndex !== index) reorderImages(dragIndex, index);
+                                  setDragIndex(null);
+                                }}
+                                className="relative w-20 h-20 rounded-xl overflow-hidden border border-black/10 group cursor-move bg-[#F2F1EF]"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={url} alt="" className="w-full h-full object-cover" />
+                              <div className="absolute top-1 left-1 bg-black/50 rounded-full p-0.5">
+                                <GripVertical className="w-3 h-3 text-white" />
+                              </div>
+                              <button
+                                  type="button"
+                                  onClick={() => removeImage(index)}
+                                  className="absolute top-1 right-1 bg-black/70 hover:bg-black text-white rounded-full w-5 h-5 flex items-center justify-center"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            </div>
+                        ))}
+                      </div>
+                  )}
+                </>
+            ) : (
+                <>
+                  {!videoFile ? (
+                      <label className="rounded-2xl border-2 border-dashed border-black/15 p-6 text-center flex flex-col items-center gap-2 cursor-pointer hover:border-black/30 transition-colors">
+                        <Film className="w-5 h-5 text-[#666666]" />
+                        <span className="text-xs text-[#555555] font-inter">
+                    <span className="text-[#111111] font-bold underline">Choose a video</span> — one per post, for Reels / short-form
+                  </span>
+                        <input
+                            type="file"
+                            accept="video/*"
+                            className="hidden"
+                            onChange={(e) => handleVideoSelect(e.target.files?.[0] ?? null)}
+                        />
+                      </label>
+                  ) : (
+                      <div className="rounded-2xl border border-black/10 p-4 flex items-center gap-4 bg-[#F2F1EF]">
+                        {videoPreview && (
+                            // eslint-disable-next-line jsx-a11y/media-has-caption
+                            <video src={videoPreview} className="w-24 h-24 rounded-xl object-cover bg-black" muted />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold font-space text-[#111111] truncate">{videoFile.name}</p>
+                          <p className="text-[11px] text-[#666666] font-inter">{(videoFile.size / (1024 * 1024)).toFixed(1)} MB</p>
+                          {videoUploadProgress !== null && (
+                              <div className="mt-2 h-1.5 bg-black/10 rounded-full overflow-hidden">
+                                <div className="h-full bg-[#111111] transition-all" style={{ width: `${videoUploadProgress}%` }} />
+                              </div>
+                          )}
                         </div>
                         <button
                             type="button"
-                            onClick={() => removeImage(index)}
-                            className="absolute top-1 right-1 bg-black/70 hover:bg-black text-white rounded-full w-5 h-5 flex items-center justify-center"
+                            onClick={() => handleVideoSelect(null)}
+                            className="shrink-0 w-7 h-7 rounded-full bg-black/5 hover:bg-black/10 flex items-center justify-center"
                         >
-                          <X className="w-3 h-3" />
+                          <X className="w-3.5 h-3.5 text-[#111111]" />
                         </button>
                       </div>
-                  ))}
-                </div>
+                  )}
+                </>
             )}
           </div>
 
@@ -311,7 +444,7 @@ export default function NewPostPage() {
 
           <div>
             <label className="block text-xs font-bold font-space text-[#111111] uppercase tracking-wider mb-2">
-              4. Target Adaptation Channels
+              5. Target Adaptation Channels
             </label>
             <div className="flex flex-wrap items-center gap-3">
               {allPlatforms.map((p) => {
@@ -338,7 +471,7 @@ export default function NewPostPage() {
 
           <div className="pt-4 border-t border-black/5 flex items-center justify-between">
           <span className="text-xs text-[#666666] font-inter hidden sm:inline-block">
-            Takes about 15-20 seconds — analyzing, then adapting per platform
+            {isGenerating && generatingStage ? generatingStage : 'Takes about 15-20 seconds once uploads finish'}
           </span>
 
             <button
@@ -349,7 +482,7 @@ export default function NewPostPage() {
               {isGenerating ? (
                   <>
                     <Sparkles className="w-4 h-4 text-[#E5F23A] animate-spin" />
-                    <span>Running Pipeline & Adapting...</span>
+                    <span>{generatingStage || 'Running Pipeline...'}</span>
                   </>
               ) : (
                   <>
