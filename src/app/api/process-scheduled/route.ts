@@ -1,12 +1,17 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { syncPostStatus } from '@/lib/postStatus'
-import { PLATFORM_IMAGE_LIMITS } from '@/lib/mediaLimits'
+import { publishVersion } from '@/lib/publishVersion'
+import type { PublishMediaItem } from '@/lib/publishVersion'
 import type { Platform } from '@/types'
-import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok, publishToInstagramReel, publishToTikTokVideo, publishToFacebookReel, publishToLinkedInVideo } from '@/lib/publishers'
 
 const MAX_ATTEMPTS = 3
 const STALE_CLAIM_MINUTES = 5
+
+interface AttachedMedia {
+    position: number
+    post_media: { url: string; media_type: 'image' | 'video' } | null
+}
 
 export async function GET(req: Request) {
     const authHeader = req.headers.get('authorization')
@@ -54,51 +59,12 @@ export async function GET(req: Request) {
                 ? `${version.caption}\n\n${version.hashtags.join(' ')}`
                 : version.caption
 
-            // --- NEW MEDIA & PUBLISHING LOGIC ---
-            interface AttachedMedia {
-                position: number
-                post_media: { url: string; media_type: 'image' | 'video' } | null
-            }
+            const items: PublishMediaItem[] = ((version.platform_version_media || []) as AttachedMedia[])
+                .filter((m) => m.post_media)
+                .sort((a, b) => a.position - b.position)
+                .map((m) => ({ url: m.post_media!.url, mediaType: m.post_media!.media_type }))
 
-            const attachedMedia = ((version.platform_version_media || []) as AttachedMedia[]).sort(
-                (a, b) => a.position - b.position
-            )
-            const mediaType: 'image' | 'video' = attachedMedia[0]?.post_media?.media_type ?? 'image'
-            const platform = version.platform as Platform
-            const limit = PLATFORM_IMAGE_LIMITS[platform] ?? 10
-
-            const imageUrls: string[] = mediaType === 'image'
-                ? attachedMedia.map((m) => m.post_media!.url).slice(0, limit)
-                : []
-            const videoUrl: string | undefined = mediaType === 'video' ? attachedMedia[0]?.post_media?.url : undefined
-
-            let platformPostId: string | null = null
-
-            if (mediaType === 'video') {
-                if (platform === 'instagram') {
-                    platformPostId = await publishToInstagramReel(connection.account_id, connection.access_token, content, videoUrl!)
-                } else if (platform === 'tiktok') {
-                    platformPostId = await publishToTikTokVideo(connection.access_token, content, videoUrl!)
-                } else if (platform === 'facebook') {
-                    platformPostId = await publishToFacebookReel(connection.account_id, connection.access_token, content, videoUrl!)
-                } else if (platform === 'linkedin') {
-                    platformPostId = await publishToLinkedInVideo(connection.account_id, connection.access_token, content, videoUrl!)
-                } else {
-                    throw new Error(`Video publishing for ${platform} isn't wired up yet`)
-                }
-
-            } else if (platform === 'instagram') {
-                platformPostId = await publishToInstagram(connection.account_id, connection.access_token, content, imageUrls)
-            } else if (platform === 'linkedin') {
-                platformPostId = await publishToLinkedIn(connection.account_id, connection.access_token, content, imageUrls)
-            } else if (platform === 'facebook') {
-                platformPostId = await publishToFacebook(connection.account_id, connection.access_token, content, imageUrls)
-            } else if (platform === 'tiktok') {
-                platformPostId = await publishToTikTok(connection.access_token, content, imageUrls)
-            } else {
-                throw new Error(`${platform} publishing not wired yet`)
-            }
-
+            const platformPostId = await publishVersion(version.platform as Platform, connection, content, items)
 
             const { error: saveError } = await admin
                 .from('platform_versions')
@@ -115,7 +81,7 @@ export async function GET(req: Request) {
                 console.error(
                     `CRITICAL: ${version.platform} post ${platformPostId} (version ${version.id}) is live but the database update failed: ${saveError.message}`
                 )
-                results.push({ versionId: version.id, platform: version.platform, success: true, warning: 'published but not recorded — check logs' })
+                results.push({ versionId: version.id, platform: version.platform, success: true, warning: 'published but not recorded. Check logs' })
                 continue
             }
 

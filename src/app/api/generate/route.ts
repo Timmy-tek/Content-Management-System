@@ -2,24 +2,45 @@ import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth'
 import { createAdminClient } from '@/lib/supabase-admin'
 import { analyzeContent, adaptForPlatform } from '@/lib/ai'
-import { PLATFORM_IMAGE_LIMITS } from '@/lib/mediaLimits'
+import { defaultSelectionFor } from '@/lib/mediaRules'
+import type { MediaKind } from '@/lib/mediaRules'
 import { storagePathFromPublicUrl } from '@/lib/storagePath'
 import type { Platform } from '@/types'
+
+interface IncomingMedia {
+    url: string
+    mediaType: MediaKind
+}
+
+interface PoolItem {
+    id: string
+    url: string
+    position: number
+    mediaType: MediaKind
+}
 
 export async function POST(req: Request) {
     const { supabase, user } = await requireUser()
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
     const body = await req.json()
-    const { title, contentType, sourceText, primaryGoal, targetAudience, platforms, imageUrls, videoUrl } = body as {
+    const { title, contentType, sourceText, primaryGoal, targetAudience, platforms, media } = body as {
         title: string
         contentType: string
         sourceText: string
         primaryGoal?: string
         targetAudience?: string
         platforms: Platform[]
-        imageUrls?: string[]
-        videoUrl?: string
+        media?: IncomingMedia[]
+    }
+
+    // Only accept files that live in THIS user's own folder in our own storage buckets
+    const storageBase = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public`
+    for (const m of media ?? []) {
+        const bucket = m.mediaType === 'video' ? 'post-videos' : 'post-images'
+        if (!m.url.startsWith(`${storageBase}/${bucket}/${user.id}/`)) {
+            return NextResponse.json({ error: 'Invalid media URL' }, { status: 400 })
+        }
     }
 
     let postId: string | null = null
@@ -41,21 +62,29 @@ export async function POST(req: Request) {
         if (postError) throw postError
         postId = post.id
 
-        const postMedia: { id: string; url: string; position: number; media_type: 'image' | 'video' }[] = []
-
-        if (videoUrl) {
-            const { data: mediaRow, error: mediaError } = await supabase
-                .from('post_media')
-                .insert({ post_id: post.id, user_id: user.id, url: videoUrl, position: 0, media_type: 'video' })
-                .select()
-                .single()
-            if (mediaError) throw mediaError
-            postMedia.push(mediaRow)
-        } else if (imageUrls && imageUrls.length > 0) {
-            const rows = imageUrls.map((url, index) => ({ post_id: post.id, user_id: user.id, url, position: index, media_type: 'image' as const }))
+        // The shared pool: every uploaded item, in the order the user arranged them
+        const pool: PoolItem[] = []
+        if (media && media.length > 0) {
+            const rows = media.map((m, index) => ({
+                post_id: post.id,
+                user_id: user.id,
+                url: m.url,
+                position: index,
+                media_type: m.mediaType,
+            }))
             const { data: mediaRows, error: mediaError } = await supabase.from('post_media').insert(rows).select()
             if (mediaError) throw mediaError
-            postMedia.push(...mediaRows.sort((a, b) => a.position - b.position))
+
+            pool.push(
+                ...mediaRows
+                    .sort((a, b) => a.position - b.position)
+                    .map((r) => ({
+                        id: r.id as string,
+                        url: r.url as string,
+                        position: r.position as number,
+                        mediaType: r.media_type as MediaKind,
+                    }))
+            )
         }
 
         const analysis = await analyzeContent({ title, sourceText, primaryGoal, targetAudience })
@@ -79,9 +108,8 @@ export async function POST(req: Request) {
                 .single()
             if (versionError) throw versionError
 
-            const assigned = videoUrl
-                ? postMedia // exactly one video, every platform gets it
-                : postMedia.slice(0, PLATFORM_IMAGE_LIMITS[platform] ?? 10)
+            // Instagram starts with everything; the others start with images (or one video)
+            const assigned = defaultSelectionFor(platform, pool)
 
             if (assigned.length > 0) {
                 const attachRows = assigned.map((m, index) => ({
@@ -97,21 +125,24 @@ export async function POST(req: Request) {
             platformVersions.push({ ...version, media: assigned })
         }
 
-        return NextResponse.json({ post, postMedia, platformVersions })
+        return NextResponse.json({ post, postMedia: pool, platformVersions })
     } catch (err: unknown) {
         console.error('Generate failed, rolling back:', err)
 
         if (postId) await supabase.from('posts').delete().eq('id', postId)
 
         const admin = createAdminClient()
-        if (imageUrls && imageUrls.length > 0) {
-            const paths = imageUrls.map((url) => storagePathFromPublicUrl(url)).filter((p): p is string => !!p)
-            if (paths.length > 0) await admin.storage.from('post-images').remove(paths)
-        }
-        if (videoUrl) {
-            const path = storagePathFromPublicUrl(videoUrl, 'post-videos')
-            if (path) await admin.storage.from('post-videos').remove([path])
-        }
+        const imagePaths = (media ?? [])
+            .filter((m) => m.mediaType === 'image')
+            .map((m) => storagePathFromPublicUrl(m.url))
+            .filter((p): p is string => !!p)
+        const videoPaths = (media ?? [])
+            .filter((m) => m.mediaType === 'video')
+            .map((m) => storagePathFromPublicUrl(m.url, 'post-videos'))
+            .filter((p): p is string => !!p)
+
+        if (imagePaths.length > 0) await admin.storage.from('post-images').remove(imagePaths)
+        if (videoPaths.length > 0) await admin.storage.from('post-videos').remove(videoPaths)
 
         const message = err instanceof Error ? err.message : 'Unknown error'
         return NextResponse.json({ error: message }, { status: 500 })

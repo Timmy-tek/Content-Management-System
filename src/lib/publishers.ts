@@ -498,3 +498,61 @@ export async function publishToLinkedInVideo(memberUrn: string, accessToken: str
 
     return postRes.headers.get('x-restli-id')
 }
+
+export async function publishToInstagramCarousel(
+    accountId: string,
+    accessToken: string,
+    caption: string,
+    items: { url: string; mediaType: 'image' | 'video' }[]
+) {
+    const limited = items.slice(0, PLATFORM_IMAGE_LIMITS.instagram)
+
+    // 1. Create every item container first, so Instagram processes the videos in parallel
+    const children: { id: string; mediaType: 'image' | 'video' }[] = []
+    for (const item of limited) {
+        const payload =
+            item.mediaType === 'video'
+                ? { media_type: 'VIDEO', video_url: item.url, is_carousel_item: true, access_token: accessToken }
+                : { image_url: item.url, is_carousel_item: true, access_token: accessToken }
+
+        const res = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        })
+        const data = await res.json()
+        if (data.error) throw new Error(data.error.message)
+        children.push({ id: data.id, mediaType: item.mediaType })
+    }
+
+    // 2. Wait for each one (videos take much longer than images)
+    for (const child of children) {
+        if (child.mediaType === 'video') await pollInstagramContainer(child.id, accessToken, 30, 5000)
+        else await pollInstagramContainer(child.id, accessToken)
+    }
+
+    // 3. The carousel container that ties them together
+    const carouselRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            media_type: 'CAROUSEL',
+            children: children.map((c) => c.id).join(','),
+            caption,
+            access_token: accessToken,
+        }),
+    })
+    const carouselData = await carouselRes.json()
+    if (carouselData.error) throw new Error(carouselData.error.message)
+    await pollInstagramContainer(carouselData.id, accessToken)
+
+    // 4. Publish
+    const publishRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media_publish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ creation_id: carouselData.id, access_token: accessToken }),
+    })
+    const publishData = await publishRes.json()
+    if (publishData.error) throw new Error(publishData.error.message)
+    return publishData.id
+}

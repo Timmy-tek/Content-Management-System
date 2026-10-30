@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { requireUser } from '@/lib/auth'
-import { PLATFORM_IMAGE_LIMITS } from '@/lib/mediaLimits'
+import { checkPlatformSelection } from '@/lib/mediaRules'
+import type { MediaKind } from '@/lib/mediaRules'
 import type { Platform } from '@/types'
 
 export async function PATCH(req: Request) {
@@ -23,23 +24,25 @@ export async function PATCH(req: Request) {
             .single()
         if (versionError || !version) return NextResponse.json({ error: 'Post version not found' }, { status: 404 })
 
-        const limit = PLATFORM_IMAGE_LIMITS[version.platform as Platform] ?? 10
-        if (postMediaIds.length > limit) {
-            return NextResponse.json({ error: `${version.platform} allows at most ${limit} images` }, { status: 400 })
-        }
-
-        // Every id must actually belong to this post's own pool — otherwise someone
-        // could attach another post's (or another user's) media by guessing an id.
+        // Every id must belong to this post's own pool, and we need each one's type for the rules
+        let kinds: MediaKind[] = []
         if (postMediaIds.length > 0) {
             const { data: ownedMedia } = await supabase
                 .from('post_media')
-                .select('id')
+                .select('id, media_type')
                 .eq('post_id', version.post_id)
                 .in('id', postMediaIds)
             if (!ownedMedia || ownedMedia.length !== postMediaIds.length) {
-                return NextResponse.json({ error: 'One or more images do not belong to this post' }, { status: 400 })
+                return NextResponse.json({ error: 'One or more items do not belong to this post' }, { status: 400 })
             }
+            const typeById = new Map<string, MediaKind>(
+                ownedMedia.map((m) => [m.id as string, m.media_type as MediaKind])
+            )
+            kinds = postMediaIds.map((id) => typeById.get(id) ?? 'image')
         }
+
+        const problem = checkPlatformSelection(version.platform as Platform, kinds)
+        if (problem) return NextResponse.json({ error: problem }, { status: 400 })
 
         const { error: deleteError } = await supabase
             .from('platform_version_media')
@@ -60,7 +63,7 @@ export async function PATCH(req: Request) {
 
         return NextResponse.json({ success: true })
     } catch (err) {
-        const message = err instanceof Error ? err.message : 'Failed to update images'
+        const message = err instanceof Error ? err.message : 'Failed to update media'
         return NextResponse.json({ error: message }, { status: 500 })
     }
 }

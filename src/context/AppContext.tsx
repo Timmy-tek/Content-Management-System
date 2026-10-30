@@ -107,7 +107,7 @@ interface AppContextType {
     reloadConnections: () => Promise<void>;
     brandSettings: BrandSettings;
     apiSettings: ApiSettings;
-    addPost: (postData: { title: string; contentType: Post['contentType']; sourceContent: string; goal?: string; audience?: string; selectedPlatforms: Platform[]; imageUrls?: string[]; videoUrl?: string; }) => Promise<string>;
+    addPost: (postData: { title: string; contentType: Post['contentType']; sourceContent: string; goal?: string; audience?: string; selectedPlatforms: Platform[]; media?: { url: string; mediaType: 'image' | 'video' }[] }) => Promise<string>;
     updatePlatformVersion: (postId: string, platform: Platform, updates: Partial<PlatformVersion>) => void;
     approvePlatformVersion: (postId: string, platform: Platform) => void;
     approveAllPlatformVersions: (postId: string) => void;
@@ -263,8 +263,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                                                           goal,
                                                           audience,
                                                           selectedPlatforms,
-                                                          imageUrls,
-                                                          videoUrl, // <-- ADD THIS
+                                                          media,
                                                       }) => {
         const res = await fetch('/api/generate', {
             method: 'POST',
@@ -276,8 +275,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 primaryGoal: goal,
                 targetAudience: audience,
                 platforms: selectedPlatforms,
-                imageUrls,
-                videoUrl, // <-- ADD THIS
+                media,
             }),
         });
 
@@ -289,11 +287,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const { post: dbPost, postMedia: dbPostMedia, platformVersions: dbVersions } = await res.json();
 
         const postMedia: PostMediaItem[] = (dbPostMedia || []).map(
-            (m: { id: string; url: string; position: number }) => ({ id: m.id, url: m.url, position: m.position })
+            (m: { id: string; url: string; position: number; mediaType: 'image' | 'video' }) => ({
+                id: m.id,
+                url: m.url,
+                position: m.position,
+                mediaType: m.mediaType,
+            })
         );
 
         const versions: Post['versions'] = {};
-        dbVersions.forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus; media: { id: string; url: string; position: number; media_type: 'image' | 'video' }[] }) => {
+        dbVersions.forEach((v: { id: string; post_id: string; platform: string; caption: string; hashtags: string[]; status: PlatformVersionStatus; media: { id: string; url: string; position: number; mediaType: 'image' | 'video' }[] }) => {
             versions[v.platform as Platform] = {
                 id: v.id,
                 postId: v.post_id,
@@ -303,7 +306,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
                 status: v.status,
                 approved: false,
                 previewType: previewTypeFor(v.platform as Platform),
-                media: (v.media || []).map((m, index) => ({ id: m.id, url: m.url, position: index, mediaType: m.media_type })),
+                media: (v.media || []).map((m, index) => ({ id: m.id, url: m.url, position: index, mediaType: m.mediaType })),
             };
         });
 
@@ -529,7 +532,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Upload failed');
 
-        const newItem: PostMediaItem = data.media;
+        const newItem: PostMediaItem = { ...data.media, mediaType: 'image' };
 
         setPosts((prev) =>
             prev.map((p) => {
