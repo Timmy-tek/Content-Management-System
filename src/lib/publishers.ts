@@ -343,3 +343,158 @@ async function waitForTikTokPublish(accessToken: string, publishId: string, maxW
     // Still processing after the wait. We deliberately don't throw here: TikTok may still
     // finish it, and failing would make the scheduler retry and risk a duplicate post.
 }
+
+export async function publishToFacebookReel(pageId: string, pageAccessToken: string, caption: string, videoUrl: string) {
+    // Step 1: start an upload session
+    const startRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/video_reels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ upload_phase: 'start', access_token: pageAccessToken }),
+    })
+    const startData = await startRes.json()
+    if (startData.error) throw new Error(startData.error.message)
+
+    const videoId: string = startData.video_id
+    const uploadUrl: string = startData.upload_url
+    if (!videoId || !uploadUrl) throw new Error('Facebook did not return an upload session')
+
+    // Step 2: tell Facebook where to download the video from.
+    // This goes to a different host and uses "OAuth", not "Bearer".
+    const uploadRes = await fetch(uploadUrl, {
+        method: 'POST',
+        headers: { Authorization: `OAuth ${pageAccessToken}`, file_url: videoUrl },
+    })
+    const uploadData = await uploadRes.json().catch(() => ({}))
+    if (!uploadRes.ok || uploadData.success === false || uploadData.error) {
+        throw new Error(`Facebook could not fetch the video: ${JSON.stringify(uploadData)}`)
+    }
+
+    // Step 3: publish
+    const finishRes = await fetch(`https://graph.facebook.com/v21.0/${pageId}/video_reels`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            upload_phase: 'finish',
+            video_id: videoId,
+            video_state: 'PUBLISHED',
+            description: caption,
+            access_token: pageAccessToken,
+        }),
+    })
+    const finishData = await finishRes.json()
+    if (finishData.error) throw new Error(finishData.error.message)
+    if (!finishData.success) throw new Error(`Facebook did not confirm the Reel: ${JSON.stringify(finishData)}`)
+
+    // Step 4: Facebook keeps processing after "finish", so ask how it went.
+    // From here on the Reel is accepted, so network hiccups are ignored (failing now could make
+    // the scheduler retry and post a duplicate). Only an explicit error status fails the post.
+    const deadline = Date.now() + 60_000
+    while (Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 4000))
+
+        let failed: string | null = null
+        try {
+            const statusRes = await fetch(`https://graph.facebook.com/v21.0/${videoId}?fields=status&access_token=${pageAccessToken}`)
+            const statusData = await statusRes.json()
+            const videoStatus: string | undefined = statusData.status?.video_status
+            const publishingPhase: string | undefined = statusData.status?.publishing_phase?.status
+
+            if (videoStatus === 'error' || publishingPhase === 'error') failed = JSON.stringify(statusData.status)
+            else if (videoStatus === 'ready' || publishingPhase === 'complete') return videoId
+        } catch {
+            // temporary network problem: keep waiting
+        }
+        if (failed) throw new Error(`Facebook could not publish this Reel (${failed})`)
+    }
+
+    console.warn(`Facebook Reel ${videoId} accepted but still processing after the wait`)
+    return videoId
+}
+
+export async function publishToLinkedInVideo(memberUrn: string, accessToken: string, commentary: string, videoUrl: string) {
+    const baseHeaders = {
+        Authorization: `Bearer ${accessToken}`,
+        'Linkedin-Version': '202601',
+        'X-Restli-Protocol-Version': '2.0.0',
+    }
+
+    const videoRes = await fetch(videoUrl)
+    if (!videoRes.ok) throw new Error('Could not read the video file from storage')
+    const videoBuffer = Buffer.from(await videoRes.arrayBuffer())
+
+    // Step 1: register the upload. LinkedIn answers with one upload address per part.
+    const initRes = await fetch('https://api.linkedin.com/rest/videos?action=initializeUpload', {
+        method: 'POST',
+        headers: { ...baseHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            initializeUploadRequest: {
+                owner: memberUrn,
+                fileSizeBytes: videoBuffer.length,
+                uploadCaptions: false,
+                uploadThumbnail: false,
+            },
+        }),
+    })
+    const initData = await initRes.json()
+    if (!initRes.ok) throw new Error(`LinkedIn video init failed: ${JSON.stringify(initData)}`)
+
+    const videoUrn: string = initData.value.video
+    const uploadToken: string = initData.value.uploadToken ?? ''
+    const parts: { uploadUrl: string; firstByte: number; lastByte: number }[] = initData.value.uploadInstructions
+
+    // Step 2: upload each part and keep its receipt (ETag), in order
+    const partIds: string[] = []
+    for (const part of parts) {
+        const putRes = await fetch(part.uploadUrl, {
+            method: 'PUT',
+            headers: { ...baseHeaders, 'Content-Type': 'application/octet-stream' },
+            body: videoBuffer.subarray(part.firstByte, part.lastByte + 1),
+        })
+        if (!putRes.ok) throw new Error(`LinkedIn video upload failed (status ${putRes.status})`)
+
+        const etag = putRes.headers.get('etag')
+        if (!etag) throw new Error('LinkedIn did not return a receipt for an uploaded part')
+        partIds.push(etag.replace(/"/g, ''))
+    }
+
+    // Step 3: finalize
+    const finalizeRes = await fetch('https://api.linkedin.com/rest/videos?action=finalizeUpload', {
+        method: 'POST',
+        headers: { ...baseHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ finalizeUploadRequest: { video: videoUrn, uploadToken, uploadedPartIds: partIds } }),
+    })
+    if (!finalizeRes.ok) throw new Error(`LinkedIn video finalize failed: ${await finalizeRes.text()}`)
+
+    // Step 4: wait until LinkedIn has finished processing the video
+    const deadline = Date.now() + 120_000
+    let status = ''
+    while (Date.now() < deadline) {
+        const statusRes = await fetch(`https://api.linkedin.com/rest/videos/${encodeURIComponent(videoUrn)}`, {
+            headers: baseHeaders,
+        })
+        const statusData = await statusRes.json()
+        status = statusData.status
+        if (status === 'AVAILABLE') break
+        if (status === 'PROCESSING_FAILED') throw new Error('LinkedIn could not process this video')
+        await new Promise((resolve) => setTimeout(resolve, 4000))
+    }
+    if (status !== 'AVAILABLE') throw new Error('LinkedIn is still processing the video. Try publishing again in a moment')
+
+    const body: LinkedInPostBody = {
+        author: memberUrn,
+        lifecycleState: 'PUBLISHED',
+        visibility: 'PUBLIC',
+        commentary,
+        distribution: { feedDistribution: 'MAIN_FEED' },
+        content: { media: { id: videoUrn } },
+    }
+
+    const postRes = await fetch('https://api.linkedin.com/rest/posts', {
+        method: 'POST',
+        headers: { ...baseHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+    })
+    if (!postRes.ok) throw new Error(await postRes.text())
+
+    return postRes.headers.get('x-restli-id')
+}

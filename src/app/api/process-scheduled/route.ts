@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase-admin'
 import { syncPostStatus } from '@/lib/postStatus'
 import { PLATFORM_IMAGE_LIMITS } from '@/lib/mediaLimits'
 import type { Platform } from '@/types'
-import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok, publishToInstagramReel, publishToTikTokVideo } from '@/lib/publishers'
+import { publishToInstagram, publishToLinkedIn, publishToFacebook, publishToTikTok, publishToInstagramReel, publishToTikTokVideo, publishToFacebookReel, publishToLinkedInVideo } from '@/lib/publishers'
 
 const MAX_ATTEMPTS = 3
 const STALE_CLAIM_MINUTES = 5
@@ -79,9 +79,14 @@ export async function GET(req: Request) {
                     platformPostId = await publishToInstagramReel(connection.account_id, connection.access_token, content, videoUrl!)
                 } else if (platform === 'tiktok') {
                     platformPostId = await publishToTikTokVideo(connection.access_token, content, videoUrl!)
+                } else if (platform === 'facebook') {
+                    platformPostId = await publishToFacebookReel(connection.account_id, connection.access_token, content, videoUrl!)
+                } else if (platform === 'linkedin') {
+                    platformPostId = await publishToLinkedInVideo(connection.account_id, connection.access_token, content, videoUrl!)
                 } else {
                     throw new Error(`Video publishing for ${platform} isn't wired up yet`)
                 }
+
             } else if (platform === 'instagram') {
                 platformPostId = await publishToInstagram(connection.account_id, connection.access_token, content, imageUrls)
             } else if (platform === 'linkedin') {

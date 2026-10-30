@@ -15,5 +15,4 @@ export function maxImagesFor(platforms: Platform[]): number {
     return Math.max(...platforms.map((p) => PLATFORM_IMAGE_LIMITS[p]))
 }
 
-// Facebook and LinkedIn video (Reels / video upload) land in the next pass.
-export const VIDEO_SUPPORTED_PLATFORMS: Platform[] = ['instagram', 'tiktok']
+export const VIDEO_SUPPORTED_PLATFORMS: Platform[] = ['instagram', 'tiktok', 'facebook', 'linkedin']
