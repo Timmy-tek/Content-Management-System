@@ -9,21 +9,36 @@ interface LinkedInPostBody {
     content?: { media?: { id: string }; multiImage?: { images: { id: string }[] } }
 }
 
-async function pollInstagramContainer(containerId: string, accessToken: string, maxAttempts = 10, intervalMs = 3000) {
-    let status = 'IN_PROGRESS'
+async function pollInstagramContainer(
+    containerId: string,
+    accessToken: string,
+    maxAttempts = 10,
+    intervalMs = 3000,
+    label = 'the media'
+) {
+    let lastStatus = ''
     for (let attempt = 0; attempt < maxAttempts; attempt++) {
         const statusRes = await fetch(
-            `https://graph.instagram.com/v21.0/${containerId}?fields=status_code&access_token=${accessToken}`
+            `https://graph.instagram.com/v21.0/${containerId}?fields=status_code,status&access_token=${accessToken}`
         )
         const statusData = await statusRes.json()
-        status = statusData.status_code
 
-        if (status === 'FINISHED') return
-        if (status === 'ERROR') throw new Error('Instagram failed to process the media')
+        // An error reply used to be mistaken for "still processing"
+        if (statusData.error) {
+            throw new Error(`Instagram status check failed for ${label}: ${statusData.error.message}`)
+        }
+
+        lastStatus = statusData.status_code
+        if (lastStatus === 'FINISHED') return
+        if (lastStatus === 'ERROR' || lastStatus === 'EXPIRED') {
+            throw new Error(`Instagram could not process ${label}${statusData.status ? ` (${statusData.status})` : ''}`)
+        }
 
         await new Promise((resolve) => setTimeout(resolve, intervalMs))
     }
-    throw new Error('Instagram is still processing the media — try publishing again in a moment')
+    throw new Error(
+        `Instagram is still processing ${label} (status: ${lastStatus || 'unknown'}). Try publishing again in a moment`
+    )
 }
 
 export async function publishToInstagramReel(accountId: string, accessToken: string, caption: string, videoUrl: string) {
@@ -525,10 +540,12 @@ export async function publishToInstagramCarousel(
         children.push({ id: data.id, mediaType: item.mediaType })
     }
 
-    // 2. Wait for each one (videos take much longer than images)
-    for (const child of children) {
-        if (child.mediaType === 'video') await pollInstagramContainer(child.id, accessToken, 30, 5000)
-        else await pollInstagramContainer(child.id, accessToken)
+    // 2. Wait for each one, naming it so a failure says which item caused it
+    for (let i = 0; i < children.length; i++) {
+        const child = children[i]
+        const label = `${child.mediaType} ${i + 1} of ${children.length}`
+        if (child.mediaType === 'video') await pollInstagramContainer(child.id, accessToken, 30, 5000, label)
+        else await pollInstagramContainer(child.id, accessToken, 10, 3000, label)
     }
 
     // 3. The carousel container that ties them together
@@ -544,7 +561,7 @@ export async function publishToInstagramCarousel(
     })
     const carouselData = await carouselRes.json()
     if (carouselData.error) throw new Error(carouselData.error.message)
-    await pollInstagramContainer(carouselData.id, accessToken)
+    await pollInstagramContainer(carouselData.id, accessToken, 24, 5000, 'the carousel')
 
     // 4. Publish
     const publishRes = await fetch(`https://graph.instagram.com/v21.0/${accountId}/media_publish`, {
