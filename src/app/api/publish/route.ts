@@ -65,7 +65,6 @@ export async function POST(req: Request) {
             } else {
                 throw new Error(`Video publishing for ${platform} isn't wired up yet`)
             }
-        }
         } else if (platform === 'instagram') {
             platformPostId = await publishToInstagram(connection.account_id, connection.access_token, contentToPublish, imageUrls)
         } else if (platform === 'linkedin') {
